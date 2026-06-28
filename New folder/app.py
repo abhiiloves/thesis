@@ -156,14 +156,15 @@ async def process_chat(req: ChatRequest):
                     save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%H%M%S')}", user_msg)
                     reply_text = "Understood Sir, I have noted and saved your friends' details to memory."
 
-        # Predefined checks with top preference matching
-        for key in PREDEFINED_RESPONSES:
-            if key == 'default':
-                continue
-            pattern = r'\b' + re.escape(key) + r'\b'
-            if key in text_lower or re.search(pattern, text_lower):
-                reply_text = random.choice(PREDEFINED_RESPONSES[key])
-                break
+        # Predefined checks with top preference matching (if not already handled by fact saving)
+        if not reply_text:
+            for key in PREDEFINED_RESPONSES:
+                if key == 'default':
+                    continue
+                pattern = r'\b' + re.escape(key) + r'\b'
+                if re.search(pattern, text_lower):
+                    reply_text = random.choice(PREDEFINED_RESPONSES[key])
+                    break
 
         # Time & Date Queries
         if not reply_text:

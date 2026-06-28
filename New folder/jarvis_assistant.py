@@ -175,7 +175,7 @@ class JarvisBrain:
             if key == 'default':
                 continue
             pattern = r'\b' + re.escape(key) + r'\b'
-            if key in text or re.search(pattern, text):
+            if re.search(pattern, text):
                 return random.choice(self.responses[key])
         return None
 
