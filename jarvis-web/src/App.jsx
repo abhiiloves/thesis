@@ -25,7 +25,6 @@ export default function App() {
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [isThinking, setIsThinking] = useState(false);
 
-  // Save state to local storage on update
   useEffect(() => {
     localStorage.setItem('JARVIS_CHAT_SESSIONS', JSON.stringify(sessions));
   }, [sessions]);
@@ -64,17 +63,16 @@ export default function App() {
     });
   };
 
-  const handleSendMessage = async (text) => {
-    if (!text.trim()) return;
+  const handleSendMessage = async (text, attachments = []) => {
+    if (!text.trim() && attachments.length === 0) return;
 
-    const userMsg = { sender: 'user', text, timestamp: new Date().toISOString() };
+    const userMsg = { sender: 'user', text, attachments, timestamp: new Date().toISOString() };
 
-    // Update active session with user message & generate title if first message
     setSessions(prev => prev.map(session => {
       if (session.id === activeSessionId) {
         const updatedMsgs = [...session.messages, userMsg];
         const updatedTitle = session.messages.length === 0 
-          ? (text.length > 25 ? text.substring(0, 25) + '...' : text) 
+          ? (text ? (text.length > 25 ? text.substring(0, 25) + '...' : text) : 'Attachment Analysis') 
           : session.title;
         return { ...session, title: updatedTitle, messages: updatedMsgs };
       }
@@ -84,7 +82,7 @@ export default function App() {
     setIsThinking(true);
 
     try {
-      const replyText = await jarvisBrain.processInput(text);
+      const replyText = await jarvisBrain.processInput(text, attachments);
       const botMsg = { sender: 'bot', text: replyText, timestamp: new Date().toISOString() };
 
       setSessions(prev => prev.map(session => {

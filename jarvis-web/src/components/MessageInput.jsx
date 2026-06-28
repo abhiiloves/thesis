@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Send, Mic, MicOff } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Send, Mic, MicOff, Paperclip, X, FileText, Image as ImageIcon } from 'lucide-react';
 import { speechService } from '../services/speechService';
 
 export default function MessageInput({ onSendMessage, disabled }) {
   const [text, setText] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [attachments, setAttachments] = useState([]);
+  const fileInputRef = useRef(null);
 
   const handleSend = () => {
-    if (!text.trim() || disabled) return;
-    onSendMessage(text);
+    if ((!text.trim() && attachments.length === 0) || disabled) return;
+    onSendMessage(text, attachments);
     setText('');
+    setAttachments([]);
   };
 
   const handleKeyDown = (e) => {
@@ -38,9 +41,87 @@ export default function MessageInput({ onSendMessage, disabled }) {
     }
   };
 
+  const handleFileUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    files.forEach(file => {
+      const reader = new FileReader();
+      if (file.type.startsWith('image/')) {
+        reader.onload = (event) => {
+          setAttachments(prev => [...prev, {
+            id: Date.now() + Math.random(),
+            name: file.name,
+            type: 'image',
+            mimeType: file.type,
+            data: event.target.result
+          }]);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // Read text/documents
+        reader.onload = (event) => {
+          setAttachments(prev => [...prev, {
+            id: Date.now() + Math.random(),
+            name: file.name,
+            type: 'document',
+            mimeType: file.type || 'text/plain',
+            data: event.target.result
+          }]);
+        };
+        reader.readAsText(file);
+      }
+    });
+
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeAttachment = (id) => {
+    setAttachments(prev => prev.filter(att => att.id !== id));
+  };
+
   return (
     <div className="input-section">
-      <div className="input-box-wrapper">
+      {/* Attachment Previews */}
+      {attachments.length > 0 && (
+        <div style={{ display: 'flex', gap: '8px', padding: '8px 12px', background: 'var(--bg-card)', borderRadius: '12px 12px 0 0', border: '1px solid var(--border-color)', borderBottom: 'none' }}>
+          {attachments.map(att => (
+            <div key={att.id} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-tertiary)', padding: '6px 10px', borderRadius: '8px', fontSize: '0.8rem', color: 'var(--text-primary)' }}>
+              {att.type === 'image' ? (
+                <img src={att.data} alt="thumb" style={{ width: '24px', height: '24px', borderRadius: '4px', objectFit: 'cover' }} />
+              ) : (
+                <FileText size={16} style={{ color: 'var(--accent-cyan)' }} />
+              )}
+              <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name}</span>
+              <button 
+                onClick={() => removeAttachment(att.id)} 
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginLeft: '4px' }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="input-box-wrapper" style={{ borderRadius: attachments.length > 0 ? '0 0 20px 20px' : '20px' }}>
+        <button 
+          className="mic-btn" 
+          onClick={() => fileInputRef.current && fileInputRef.current.click()}
+          title="Upload Image or Document"
+        >
+          <Paperclip size={20} />
+        </button>
+
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          onChange={handleFileUpload} 
+          style={{ display: 'none' }} 
+          accept="image/*,.txt,.md,.js,.py,.html,.css,.csv,.json,.pdf" 
+          multiple
+        />
+
         <button 
           className={`mic-btn ${isListening ? 'listening' : ''}`} 
           onClick={toggleVoiceInput}
@@ -51,7 +132,7 @@ export default function MessageInput({ onSendMessage, disabled }) {
 
         <textarea
           className="chat-input"
-          placeholder={isListening ? "Listening to your voice..." : "Type your command or message..."}
+          placeholder={isListening ? "Listening..." : "Ask Jarvis, analyze files, set timers, or generate images..."}
           rows={1}
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -62,7 +143,7 @@ export default function MessageInput({ onSendMessage, disabled }) {
         <button 
           className="send-btn" 
           onClick={handleSend} 
-          disabled={!text.trim() || disabled}
+          disabled={(!text.trim() && attachments.length === 0) || disabled}
           title="Send Command"
         >
           <Send size={18} />

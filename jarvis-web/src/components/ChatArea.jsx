@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Bot, User, Copy, Check, Sparkles } from 'lucide-react';
+import { Bot, User, Copy, Check, Sparkles, FileText } from 'lucide-react';
 
 export default function ChatArea({ messages, onSelectStarter, isThinking }) {
   const scrollRef = useRef(null);
@@ -11,9 +11,9 @@ export default function ChatArea({ messages, onSelectStarter, isThinking }) {
   }, [messages, isThinking]);
 
   const starterCards = [
-    { title: "Open Web Apps", desc: "Type 'Open YouTube' or 'Play Music'", action: "Open YouTube Sir." },
-    { title: "Coding & Math", desc: "Ask for code examples, algorithms, or debugs", action: "Write a python function for quicksort." },
-    { title: "Creative & Advice", desc: "Draft emails, strategic advice, or ideas", action: "Introduce yourself in detail." }
+    { title: "🎨 Image Generation", desc: "Type 'Generate image of a futuristic cyberpunk city'", action: "Generate image of a futuristic cyberpunk city" },
+    { title: "📷 Vision & Analysis", desc: "Upload a screenshot, math question, or document", action: "Summarize this attached document." },
+    { title: "⏰ Alarms & Timers", desc: "Type 'Remind me in 10 seconds to stretch'", action: "Remind me in 10 seconds to take a break" }
   ];
 
   return (
@@ -23,8 +23,8 @@ export default function ChatArea({ messages, onSelectStarter, isThinking }) {
           <div className="jarvis-avatar-large">
             <Bot size={42} style={{ color: 'var(--accent-green)' }} />
           </div>
-          <h1 className="welcome-title">I am JARVIS</h1>
-          <p className="welcome-subtitle">Your intelligent voice & AI companion. How may I assist you today, Sir?</p>
+          <h1 className="welcome-title">I am JARVIS Ultra</h1>
+          <p className="welcome-subtitle">Vision AI • Image Generation • Alarms • Live Weather • Document Reader</p>
 
           <div className="starters-grid">
             {starterCards.map((card, idx) => (
@@ -47,7 +47,7 @@ export default function ChatArea({ messages, onSelectStarter, isThinking }) {
               </div>
               <div className="bubble-content" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Sparkles size={16} className="pulse-dot" />
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>JARVIS is thinking...</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>JARVIS is processing...</span>
               </div>
             </div>
           )}
@@ -66,6 +66,22 @@ function MessageBubble({ message }) {
         {isUser ? <User size={20} /> : <Bot size={20} />}
       </div>
       <div className="bubble-content">
+        {/* Render Attachments if present */}
+        {message.attachments && message.attachments.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+            {message.attachments.map((att, i) => (
+              <div key={i}>
+                {att.type === 'image' ? (
+                  <img src={att.data} alt="uploaded" style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)' }} />
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.1)', padding: '6px 10px', borderRadius: '6px', fontSize: '0.8rem' }}>
+                    <FileText size={16} /> <span>{att.name}</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
         <FormattedText content={message.text} />
       </div>
     </div>
@@ -77,8 +93,9 @@ function FormattedText({ content }) {
 
   if (!content) return null;
 
-  // Simple parser for code blocks delimited by ```
-  const parts = content.split(/(```[\s\S]*?```)/g);
+  // Render markdown images ![alt](url)
+  const imageRegex = /!\[(.*?)\]\((.*?)\)/g;
+  const parts = content.split(/(```[\s\S]*?```|!\[.*?\]\(.*?\))/g);
 
   const handleCopy = (codeText, idx) => {
     navigator.clipboard.writeText(codeText);
@@ -108,7 +125,22 @@ function FormattedText({ content }) {
           );
         }
 
-        // Render standard paragraph text with basic line breaks
+        // Match ![alt](url) for Generated AI Art
+        const imgMatch = part.match(/^!\[(.*?)\]\((.*?)\)$/);
+        if (imgMatch) {
+          const altText = imgMatch[1];
+          const imgUrl = imgMatch[2];
+          return (
+            <div key={idx} style={{ margin: '12px 0' }}>
+              <img 
+                src={imgUrl} 
+                alt={altText} 
+                style={{ width: '100%', maxWidth: '450px', borderRadius: '14px', border: '1px solid var(--border-active)', boxShadow: '0 8px 25px rgba(0,0,0,0.5)' }} 
+              />
+            </div>
+          );
+        }
+
         return (
           <p key={idx} style={{ whiteSpace: 'pre-wrap', marginBottom: idx < parts.length - 1 ? '8px' : '0' }}>
             {part}
