@@ -283,7 +283,12 @@ async def process_chat(req: ChatRequest):
         if not reply_text:
             if api_status == "offline":
                 try:
-                    wiki_summary = wikipedia.summary(user_msg, sentences=2)
+                    clean_q = re.sub(r'\b(what|who|where|when|is|are|tell|me|about|the|a|an|in|of|ka|ki|ke|ko|batao|bato)\b', '', user_msg, flags=re.IGNORECASE).strip()
+                    search_q = clean_q if len(clean_q) > 2 else user_msg
+                    try:
+                        wiki_summary = wikipedia.summary(search_q, sentences=2)
+                    except wikipedia.exceptions.DisambiguationError as de:
+                        wiki_summary = wikipedia.summary(de.options[0], sentences=2)
                     reply_text = f"According to Wikipedia: {wiki_summary}"
                 except Exception:
                     reply_text = "Sorry Sir, Gemini AI limit reached or offline. Operating in predefined command mode."

@@ -354,7 +354,12 @@ class JarvisBrain:
 
         if self.api_status == "offline":
             try:
-                wiki_summary = wikipedia.summary(raw_text, sentences=2)
+                clean_q = re.sub(r'\b(what|who|where|when|is|are|tell|me|about|the|a|an|in|of|ka|ki|ke|ko|batao|bato)\b', '', raw_text, flags=re.IGNORECASE).strip()
+                search_q = clean_q if len(clean_q) > 2 else raw_text
+                try:
+                    wiki_summary = wikipedia.summary(search_q, sentences=2)
+                except wikipedia.exceptions.DisambiguationError as de:
+                    wiki_summary = wikipedia.summary(de.options[0], sentences=2)
                 resp_str = f"According to Wikipedia: {wiki_summary}"
                 self.conversation_context.append({"role": "user", "content": raw_text})
                 self.conversation_context.append({"role": "assistant", "content": resp_str})
