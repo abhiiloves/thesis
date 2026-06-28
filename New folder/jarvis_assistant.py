@@ -290,19 +290,20 @@ class JarvisBrain:
 
                 full_prompt = "\n".join(prompt_parts)
 
-                try:
-                    response = self.gemini_client.models.generate_content(
-                        model=self.selected_model,
-                        contents=full_prompt,
-                        config=types.GenerateContentConfig(max_output_tokens=150, temperature=0.7)
-                    )
-                except Exception as model_err:
-                    print(f"[Desktop Model Fallback] {model_err}")
-                    response = self.gemini_client.models.generate_content(
-                        model="gemini-2.0-flash",
-                        contents=full_prompt,
-                        config=types.GenerateContentConfig(max_output_tokens=150, temperature=0.7)
-                    )
+                response = None
+                models_to_try = [self.selected_model, "gemini-2.0-flash", "gemini-1.5-flash"]
+                for m_name in models_to_try:
+                    try:
+                        resp = self.gemini_client.models.generate_content(
+                            model=m_name,
+                            contents=full_prompt,
+                            config=types.GenerateContentConfig(max_output_tokens=150, temperature=0.7)
+                        )
+                        if resp and hasattr(resp, 'text') and resp.text:
+                            response = resp
+                            break
+                    except Exception as try_err:
+                        print(f"[Desktop Model Retry {m_name}] {try_err}")
 
                 if response and hasattr(response, 'text') and response.text:
                     reply_text = response.text.strip()

@@ -228,19 +228,20 @@ async def process_chat(req: ChatRequest):
                     prompt_parts.append(f"{role_str}: {turn['content']}")
                 prompt_parts.append(f"User: {user_msg}\nJarvis:")
 
-                try:
-                    response = active_client.models.generate_content(
-                        model=req.model,
-                        contents="\n".join(prompt_parts),
-                        config=types.GenerateContentConfig(max_output_tokens=150, temperature=0.7)
-                    )
-                except Exception as model_err:
-                    print(f"[Model Fallback Triggered] {model_err}")
-                    response = active_client.models.generate_content(
-                        model="gemini-2.0-flash",
-                        contents="\n".join(prompt_parts),
-                        config=types.GenerateContentConfig(max_output_tokens=150, temperature=0.7)
-                    )
+                response = None
+                models_to_try = [req.model, "gemini-2.0-flash", "gemini-1.5-flash"]
+                for m_name in models_to_try:
+                    try:
+                        resp = active_client.models.generate_content(
+                            model=m_name,
+                            contents="\n".join(prompt_parts),
+                            config=types.GenerateContentConfig(max_output_tokens=150, temperature=0.7)
+                        )
+                        if resp and hasattr(resp, 'text') and resp.text:
+                            response = resp
+                            break
+                    except Exception as try_err:
+                        print(f"[Model Retry {m_name}] {try_err}")
 
                 if response and hasattr(response, 'text') and response.text:
                     reply_text = response.text.strip()
