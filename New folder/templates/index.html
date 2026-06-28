@@ -403,50 +403,67 @@
         }
 
         async function loadSessions() {
-            const res = await fetch('/api/sessions');
-            const sessions = await res.json();
-            const listEl = document.getElementById('sessionList');
-            listEl.innerHTML = '';
-            
-            if (sessions.length === 0) {
-                createNewChat();
-                return;
-            }
-
-            sessions.reverse().forEach(s => {
-                const item = document.createElement('div');
-                item.className = `session-item ${s.id === currentSessionId ? 'active' : ''}`;
+            try {
+                const res = await fetch('/api/sessions');
+                if (!res.ok) return;
+                const sessions = await res.json();
+                const listEl = document.getElementById('sessionList');
+                listEl.innerHTML = '';
                 
-                const titleSpan = document.createElement('span');
-                titleSpan.className = 'session-title-text';
-                titleSpan.innerText = `💬 ${s.title.substring(0, 20)}...`;
-                titleSpan.onclick = () => selectSession(s);
+                if (sessions.length === 0) {
+                    createNewChat();
+                    return;
+                }
 
-                const delBtn = document.createElement('button');
-                delBtn.className = 'btn-del-session';
-                delBtn.innerText = '🗑️';
-                delBtn.title = 'Delete Chat';
-                delBtn.onclick = (e) => deleteSession(e, s.id);
+                sessions.reverse().forEach(s => {
+                    const item = document.createElement('div');
+                    item.className = `session-item ${s.id === currentSessionId ? 'active' : ''}`;
+                    
+                    const titleSpan = document.createElement('span');
+                    titleSpan.className = 'session-title-text';
+                    titleSpan.innerText = `💬 ${s.title.substring(0, 20)}...`;
+                    titleSpan.onclick = () => selectSession(s);
 
-                item.appendChild(titleSpan);
-                item.appendChild(delBtn);
-                listEl.appendChild(item);
-            });
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'btn-del-session';
+                    delBtn.innerText = '🗑️';
+                    delBtn.title = 'Delete Chat';
+                    delBtn.onclick = (e) => deleteSession(e, s.id);
+
+                    item.appendChild(titleSpan);
+                    item.appendChild(delBtn);
+                    listEl.appendChild(item);
+                });
+            } catch (e) {
+                console.warn("Sessions load waiting for server wake-up...");
+            }
         }
 
         async function createNewChat() {
             synth.cancel();
-            const res = await fetch('/api/new_chat', { method: 'POST' });
-            const s = await res.json();
-            currentSessionId = s.id;
-            await loadSessions();
-            selectSession(s);
+            try {
+                const res = await fetch('/api/new_chat', { method: 'POST' });
+                if (res.ok) {
+                    const s = await res.json();
+                    currentSessionId = s.id;
+                    await loadSessions();
+                    selectSession(s);
+                    return;
+                }
+            } catch (e) {}
+            // Fallback client session ID if server is cold-starting
+            currentSessionId = 'chat_' + Date.now();
+            const container = document.getElementById('chatMessages');
+            container.innerHTML = '';
+            addBubble("Hello Sir, standing by for instructions.", "bot");
         }
 
         async function deleteSession(e, sid) {
             e.stopPropagation();
             synth.cancel();
-            await fetch(`/api/session/${sid}`, { method: 'DELETE' });
+            try {
+                await fetch(`/api/session/${sid}`, { method: 'DELETE' });
+            } catch (err) {}
             if (sid === currentSessionId) {
                 currentSessionId = null;
             }
@@ -455,7 +472,9 @@
 
         async function clearAllHistory() {
             synth.cancel();
-            await fetch('/api/sessions', { method: 'DELETE' });
+            try {
+                await fetch('/api/sessions', { method: 'DELETE' });
+            } catch (err) {}
             createNewChat();
         }
 
@@ -489,6 +508,10 @@
             const input = document.getElementById('userInput');
             const msg = input.value.trim();
             if (!msg) return;
+
+            if (!currentSessionId) {
+                currentSessionId = 'chat_' + Date.now();
+            }
 
             synth.cancel();
             input.value = '';
