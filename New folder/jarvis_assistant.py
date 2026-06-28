@@ -112,15 +112,19 @@ def save_chat_sessions(sessions):
 class JarvisBrain:
     def __init__(self):
         self.responses = {
-            'hi': ['Hello! Sir, I am ready to assist you.', 'Hi sir, how can I help you today?'],
-            'greetings': ['Hello! Sir, I am ready to assist you.'],
-            'my friends name': ['Vikas Kumar, Kushagra, and Pradeep.'],
-            'your owner': ['Abhii Abhishek and Bhanu Pratap Singh.'],
-            'how are you': ['I am operating at peak efficiency, thank you Sir!'],
-            'hello': ['Hello Sir, standing by for commands.'],
-            'thank you': ['You are most welcome, Sir!'],
-            'introduce': ['I am Jarvis, an advanced AI virtual assistant designed to process commands, search the web, and answer complex questions.'],
-            'who created you': ['I was created by Abhii Abhishek at NGF College, Palwal.']
+            'hi': ['Hello! Sir, I am ready to assist you.', 'Hi sir, I am ready to assist you.', 'Hello Sir, I am ready to assist you.'],
+            'greetings': ['Hello! Sir, I am ready to assist you.', 'Hi sir, I am ready to assist you.', 'Hello Sir, I am ready to assist you.'],
+            'my friends name': ['Vikas Kumar, Kushagra', 'Pradeep'],
+            'your owner': ['Abhii Abhishek', 'Bhanu Pratap Singh'],
+            'how are you': ['I am fine, thank you for asking'],
+            'hello': ['Hello Sir, I am ready to assist you.'],
+            'thank you jarvis': ['Welcome Sir!'],
+            'thank you': ['Welcome Sir!'],
+            'introduce': ['I am a computer program chatbot AI that can understand and respond to human speech.I was created by Abhii AbhishIek . I am named after the character Jarvis from the Iron Man movies.'],
+            'who created you': ['I was created by Abhii Abhishek at NGF College, Palwal.'],
+            'who was created you': ['I was created by Abhii Abhishek at NGF College, Palwal.'],
+            'results': ['Anything else Sir?'],
+            'default': ['I am not sure how to respond to that.']
         }
 
         self.selected_model = "gemini-2.5-flash"

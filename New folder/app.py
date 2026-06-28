@@ -28,15 +28,19 @@ if API_KEY:
         print(f"[Gemini Init Warning] {e}")
 
 PREDEFINED_RESPONSES = {
-    'hi': ['Hello! Sir, I am ready to assist you.', 'Hi sir, how can I help you today?'],
-    'greetings': ['Hello! Sir, I am ready to assist you.'],
-    'my friends name': ['Vikas Kumar, Kushagra, and Pradeep.'],
-    'your owner': ['Abhii Abhishek and Bhanu Pratap Singh.'],
-    'how are you': ['I am operating at peak efficiency, thank you Sir!'],
-    'hello': ['Hello Sir, standing by for commands.'],
-    'thank you': ['You are most welcome, Sir!'],
-    'introduce': ['I am Jarvis, an advanced AI virtual assistant designed to process commands, search the web, and answer complex questions.'],
-    'who created you': ['I was created by Abhii Abhishek at NGF College, Palwal.']
+    'hi': ['Hello! Sir, I am ready to assist you.', 'Hi sir, I am ready to assist you.', 'Hello Sir, I am ready to assist you.'],
+    'greetings': ['Hello! Sir, I am ready to assist you.', 'Hi sir, I am ready to assist you.', 'Hello Sir, I am ready to assist you.'],
+    'my friends name': ['Vikas Kumar, Kushagra', 'Pradeep'],
+    'your owner': ['Abhii Abhishek', 'Bhanu Pratap Singh'],
+    'how are you': ['I am fine, thank you for asking'],
+    'hello': ['Hello Sir, I am ready to assist you.'],
+    'thank you jarvis': ['Welcome Sir!'],
+    'thank you': ['Welcome Sir!'],
+    'introduce': ['I am a computer program chatbot AI that can understand and respond to human speech.I was created by Abhii AbhishIek . I am named after the character Jarvis from the Iron Man movies.'],
+    'who created you': ['I was created by Abhii Abhishek at NGF College, Palwal.'],
+    'who was created you': ['I was created by Abhii Abhishek at NGF College, Palwal.'],
+    'results': ['Anything else Sir?'],
+    'default': ['I am not sure how to respond to that.']
 }
 
 class ChatRequest(BaseModel):
@@ -92,12 +96,28 @@ async def process_chat(req: ChatRequest):
     # Process response logic
     text_lower = user_msg.lower()
     reply_text = None
+    action_url = None
 
     # Predefined checks
     for key in PREDEFINED_RESPONSES:
         if key in text_lower:
             reply_text = random.choice(PREDEFINED_RESPONSES[key])
             break
+
+    # Actionable Tasks
+    if not reply_text:
+        if "open youtube" in text_lower:
+            reply_text = "Opening YouTube Sir."
+            action_url = "https://www.youtube.com"
+        elif "open google" in text_lower:
+            reply_text = "Opening Google Sir."
+            action_url = "https://www.google.com"
+        elif "play music" in text_lower or "play song" in text_lower or "favourite song" in text_lower or "favorite song" in text_lower:
+            reply_text = "Playing your favourite song Sir."
+            action_url = "https://www.youtube.com/watch?v=r03GO2AlNUo&t=26s"
+        elif "open amazon" in text_lower:
+            reply_text = "Opening Amazon Sir."
+            action_url = "https://www.amazon.com"
 
     # Wikipedia queries
     if not reply_text and "wikipedia" in text_lower:
@@ -141,6 +161,7 @@ async def process_chat(req: ChatRequest):
 
     return {
         "reply": reply_text,
+        "action_url": action_url,
         "timestamp": timestamp,
         "session": session
     }
