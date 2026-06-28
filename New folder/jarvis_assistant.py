@@ -149,6 +149,9 @@ class JarvisBrain:
             'who created you': ['I was created by Abhii Abhishek at NGF College, Palwal.'],
             'who was created you': ['I was created by Abhii Abhishek at NGF College, Palwal.'],
             'results': ['Anything else Sir?'],
+            'sun': ['The Sun is the star at the center of the Solar System. It is a massive, hot sphere of plasma that provides essential light and energy to Earth.'],
+            'moon': ['The Moon is Earth\'s only natural satellite. It orbits Earth and controls ocean tides.'],
+            'earth': ['Earth is the third planet from the Sun and the only astronomical object known to harbor life.'],
             'default': ['I am not sure how to respond to that.']
         }
 
@@ -318,7 +321,14 @@ class JarvisBrain:
                 self.api_status = "offline"
 
         if self.api_status == "offline":
-            return "Sorry Sir, Gemini AI limit reached or offline. Operating in predefined command mode."
+            try:
+                wiki_summary = wikipedia.summary(raw_text, sentences=2)
+                resp_str = f"According to Wikipedia: {wiki_summary}"
+                self.conversation_context.append({"role": "user", "content": raw_text})
+                self.conversation_context.append({"role": "assistant", "content": resp_str})
+                return resp_str
+            except Exception:
+                return "Sorry Sir, Gemini AI limit reached or offline. Operating in predefined command mode."
         return "I am not sure how to respond to that Sir."
 
 

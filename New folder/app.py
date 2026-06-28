@@ -76,6 +76,9 @@ PREDEFINED_RESPONSES = {
     'who created you': ['I was created by Abhii Abhishek at NGF College, Palwal.'],
     'who was created you': ['I was created by Abhii Abhishek at NGF College, Palwal.'],
     'results': ['Anything else Sir?'],
+    'sun': ['The Sun is the star at the center of the Solar System. It is a massive, hot sphere of plasma that provides essential light and energy to Earth.'],
+    'moon': ['The Moon is Earth\'s only natural satellite. It orbits Earth and controls ocean tides.'],
+    'earth': ['Earth is the third planet from the Sun and the only astronomical object known to harbor life.'],
     'default': ['I am not sure how to respond to that.']
 }
 
@@ -254,7 +257,11 @@ async def process_chat(req: ChatRequest):
 
         if not reply_text:
             if api_status == "offline":
-                reply_text = "Sorry Sir, Gemini AI limit reached or offline. Operating in predefined command mode."
+                try:
+                    wiki_summary = wikipedia.summary(user_msg, sentences=2)
+                    reply_text = f"According to Wikipedia: {wiki_summary}"
+                except Exception:
+                    reply_text = "Sorry Sir, Gemini AI limit reached or offline. Operating in predefined command mode."
             else:
                 reply_text = "I am not sure how to respond to that Sir."
 
