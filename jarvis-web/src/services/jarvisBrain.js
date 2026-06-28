@@ -167,65 +167,66 @@ class JarvisBrain {
       if (predefined) return predefined;
     }
 
-    // 7. Gemini REST API (Zero SDK dependency - Works 100% on Render & Vercel)
+    // 7. Gemini REST API with Multi-Model Fallback Engine
     const apiKey = customApiKey || localStorage.getItem('GEMINI_API_KEY') || import.meta.env.VITE_GEMINI_API_KEY || '';
     if (!apiKey) {
       return "Sir, please configure your Gemini API Key in Settings to analyze files, images, or answer AI queries.";
     }
 
-    try {
-      const memories = this.getMemories();
-      let memoryContext = "";
-      if (memories.length > 0) {
-        memoryContext = `\n[LONG-TERM MEMORY ABOUT USER]:\n- ${memories.join('\n- ')}\n`;
-      }
-
-      let promptText = `You are Jarvis, an advanced AI assistant inspired by Iron Man.${memoryContext}\nUser prompt: ${text || "Please analyze the attached files/images."}`;
-
-      const partsPayload = [];
-
-      // Add attachments (Images / Documents)
-      if (attachments.length > 0) {
-        attachments.forEach(att => {
-          if (att.type === 'image') {
-            const base64Data = att.data.split(',')[1];
-            partsPayload.push({
-              inline_data: {
-                mime_type: att.mimeType,
-                data: base64Data
-              }
-            });
-          } else if (att.type === 'document') {
-            promptText += `\n\n[ATTACHED FILE CONTEXT - ${att.name}]:\n${att.data.substring(0, 10000)}`;
-          }
-        });
-      }
-
-      partsPayload.unshift({ text: promptText });
-
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-      
-      const res = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: partsPayload }]
-        })
-      });
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error?.message || `API error code ${res.status}`);
-      }
-
-      const resData = await res.json();
-      const reply = resData.candidates?.[0]?.content?.parts?.[0]?.text;
-
-      return reply ? reply.trim() : "I have processed your request, Sir.";
-    } catch (error) {
-      console.error("Gemini REST API Error:", error);
-      return `Sorry Sir, error processing request: ${error.message || 'Check API key or network.'}`;
+    const memories = this.getMemories();
+    let memoryContext = "";
+    if (memories.length > 0) {
+      memoryContext = `\n[LONG-TERM MEMORY ABOUT USER]:\n- ${memories.join('\n- ')}\n`;
     }
+
+    let promptText = `You are Jarvis, an advanced AI assistant inspired by Iron Man.${memoryContext}\nUser prompt: ${text || "Please analyze the attached files/images."}`;
+
+    const partsPayload = [];
+    if (attachments.length > 0) {
+      attachments.forEach(att => {
+        if (att.type === 'image') {
+          const base64Data = att.data.split(',')[1];
+          partsPayload.push({
+            inline_data: {
+              mime_type: att.mimeType,
+              data: base64Data
+            }
+          });
+        } else if (att.type === 'document') {
+          promptText += `\n\n[ATTACHED FILE CONTEXT - ${att.name}]:\n${att.data.substring(0, 10000)}`;
+        }
+      });
+    }
+
+    partsPayload.unshift({ text: promptText });
+
+    // Candidate models to try sequentially
+    const modelCandidates = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-exp'];
+    let lastError = null;
+
+    for (const model of modelCandidates) {
+      try {
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const res = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: partsPayload }] })
+        });
+
+        if (res.ok) {
+          const resData = await res.json();
+          const reply = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (reply) return reply.trim();
+        } else {
+          const errJson = await res.json().catch(() => ({}));
+          lastError = errJson.error?.message || `Status ${res.status}`;
+        }
+      } catch (err) {
+        lastError = err.message;
+      }
+    }
+
+    return `Sorry Sir, error processing AI request: ${lastError || 'Check API key or model availability.'}`;
   }
 }
 
