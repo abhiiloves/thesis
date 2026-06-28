@@ -222,6 +222,20 @@ class JarvisBrain:
                     self.conversation_context.append({"role": "assistant", "content": resp_str})
                     return resp_str
 
+        # Flexible Query Detection (Friends & User Name in English & Hinglish)
+        is_friend_word = any(w in text for w in ["friend", "friends", "dost", "dosto"])
+        is_query_word = any(w in text for w in ["name", "naam", "who", "bato", "batao", "list", "kaun", "kon"])
+        if is_friend_word and is_query_word:
+            resp_str = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir."
+            self.conversation_context.append({"role": "user", "content": raw_text})
+            self.conversation_context.append({"role": "assistant", "content": resp_str})
+            return resp_str
+        elif any(w in text for w in ["mera naam", "my name"]) and any(w in text for w in ["kya", "what", "batao", "bato", "tell"]):
+            resp_str = "Your name is Abhii Abhishek Sir!"
+            self.conversation_context.append({"role": "user", "content": raw_text})
+            self.conversation_context.append({"role": "assistant", "content": resp_str})
+            return resp_str
+
         # Check predefined responses first
         predefined = self.get_predefined_response(text)
         if predefined:

@@ -164,7 +164,16 @@ async def process_chat(req: ChatRequest):
                     save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%H%M%S')}", user_msg)
                     reply_text = "Understood Sir, I have noted and saved your friends' details to memory."
 
-        # Predefined checks with top preference matching (if not already handled by fact saving)
+        # Flexible Query Detection (Friends & User Name in English & Hinglish)
+        if not reply_text:
+            is_friend_word = any(w in text_lower for w in ["friend", "friends", "dost", "dosto"])
+            is_query_word = any(w in text_lower for w in ["name", "naam", "who", "bato", "batao", "list", "kaun", "kon"])
+            if is_friend_word and is_query_word:
+                reply_text = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir."
+            elif any(w in text_lower for w in ["mera naam", "my name"]) and any(w in text_lower for w in ["kya", "what", "batao", "bato", "tell"]):
+                reply_text = "Your name is Abhii Abhishek Sir!"
+
+        # Predefined checks with top preference matching
         if not reply_text:
             for key in PREDEFINED_RESPONSES:
                 if key == 'default':
