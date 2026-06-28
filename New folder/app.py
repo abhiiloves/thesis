@@ -128,124 +128,135 @@ async def process_chat(req: ChatRequest):
     user_msg = req.message.strip()
     timestamp = datetime.datetime.now().strftime("%H:%M")
 
-    # Add user message to history
-    session["messages"].append({"sender": "user", "text": user_msg, "timestamp": timestamp})
-    if session["title"] == "New Chat":
-        session["title"] = user_msg[:22]
+    try:
+        # Add user message to history
+        session["messages"].append({"sender": "user", "text": user_msg, "timestamp": timestamp})
+        if session["title"] == "New Chat":
+            session["title"] = user_msg[:22]
 
-    # Process response logic
-    text_lower = user_msg.lower()
-    reply_text = None
-    action_url = None
+        # Process response logic
+        text_lower = user_msg.lower()
+        reply_text = None
+        action_url = None
 
-    # Auto-detect personal / friend fact statements
-    if "birthday" in text_lower or "friends" in text_lower or "friend" in text_lower or "my name" in text_lower:
-        if "my birthday" in text_lower or "my bday" in text_lower:
-            save_user_knowledge("user_birthday", user_msg)
-        else:
-            save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%H%M%S')}", user_msg)
-
-    # Predefined checks with exact word boundary matching (avoids matching 'hi' in 'his')
-    for key in PREDEFINED_RESPONSES:
-        pattern = r'\b' + re.escape(key) + r'\b'
-        if re.search(pattern, text_lower):
-            reply_text = random.choice(PREDEFINED_RESPONSES[key])
-            break
-
-    # Time & Date Queries
-    if not reply_text:
-        if "time" in text_lower or "current time" in text_lower or "what time" in text_lower:
-            now_time = datetime.datetime.now().strftime("%I:%M %p")
-            reply_text = f"The current time is {now_time}, Sir."
-        elif "date" in text_lower or "today's date" in text_lower or "what date" in text_lower:
-            now_date = datetime.datetime.now().strftime("%A, %B %d, %Y")
-            reply_text = f"Today's date is {now_date}, Sir."
-
-    # Actionable Tasks
-    if not reply_text:
-        if "open youtube" in text_lower:
-            reply_text = "Opening YouTube Sir."
-            action_url = "https://www.youtube.com"
-        elif "open google" in text_lower:
-            reply_text = "Opening Google Sir."
-            action_url = "https://www.google.com"
-        elif "play music" in text_lower or "play song" in text_lower or "favourite song" in text_lower or "favorite song" in text_lower:
-            reply_text = "Playing your favourite song Sir."
-            action_url = "https://www.youtube.com/watch?v=r03GO2AlNUo&t=26s"
-        elif "open amazon" in text_lower:
-            reply_text = "Opening Amazon Sir."
-            action_url = "https://www.amazon.com"
-
-    # Wikipedia queries
-    if not reply_text and "wikipedia" in text_lower:
-        query = user_msg.replace("wikipedia", "").replace("search", "").strip()
-        if query:
-            try:
-                result = wikipedia.summary(query, sentences=2)
-                reply_text = f"According to Wikipedia: {result}"
-            except Exception:
-                reply_text = "Sorry Sir, I couldn't fetch Wikipedia results."
-
-    # Gemini AI Status tracking
-    active_client = gemini_client
-    if req.api_key and req.api_key.strip():
-        try:
-            active_client = genai.Client(api_key=req.api_key.strip())
-        except Exception as e:
-            print(f"[Custom API Key Client Error] {e}")
-
-    api_status = "online" if active_client else "offline"
-
-    if not reply_text and active_client:
-        try:
-            global_memories = load_user_knowledge()
-            memory_str = ""
-            if global_memories:
-                memory_str = "Permanent User Knowledge/Facts: " + json.dumps(global_memories, ensure_ascii=False) + ". Use this knowledge when answering questions about the user."
-
-            prompt_parts = [
-                "You are Jarvis, a sleek, intelligent AI assistant created by Abhii Abhishek. "
-                "Respond concisely and helpfully in 1-3 sentences without markdown headers or bullet points. "
-                + memory_str
-            ]
-            recent_turns = session["context"][-10:]
-            for turn in recent_turns:
-                role_str = "User" if turn["role"] == "user" else "Jarvis"
-                prompt_parts.append(f"{role_str}: {turn['content']}")
-            prompt_parts.append(f"User: {user_msg}\nJarvis:")
-
-            response = active_client.models.generate_content(
-                model=req.model,
-                contents="\n".join(prompt_parts),
-                config=types.GenerateContentConfig(max_output_tokens=150, temperature=0.7)
-            )
-            if response and hasattr(response, 'text') and response.text:
-                reply_text = response.text.strip()
-                api_status = "online"
+        # Auto-detect personal / friend fact statements
+        if "birthday" in text_lower or "friends" in text_lower or "friend" in text_lower or "my name" in text_lower:
+            if "my birthday" in text_lower or "my bday" in text_lower:
+                save_user_knowledge("user_birthday", user_msg)
             else:
+                save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%H%M%S')}", user_msg)
+
+        # Predefined checks with exact word boundary matching (avoids matching 'hi' in 'his')
+        for key in PREDEFINED_RESPONSES:
+            pattern = r'\b' + re.escape(key) + r'\b'
+            if re.search(pattern, text_lower):
+                reply_text = random.choice(PREDEFINED_RESPONSES[key])
+                break
+
+        # Time & Date Queries
+        if not reply_text:
+            if "time" in text_lower or "current time" in text_lower or "what time" in text_lower:
+                now_time = datetime.datetime.now().strftime("%I:%M %p")
+                reply_text = f"The current time is {now_time}, Sir."
+            elif "date" in text_lower or "today's date" in text_lower or "what date" in text_lower:
+                now_date = datetime.datetime.now().strftime("%A, %B %d, %Y")
+                reply_text = f"Today's date is {now_date}, Sir."
+
+        # Actionable Tasks
+        if not reply_text:
+            if "open youtube" in text_lower:
+                reply_text = "Opening YouTube Sir."
+                action_url = "https://www.youtube.com"
+            elif "open google" in text_lower:
+                reply_text = "Opening Google Sir."
+                action_url = "https://www.google.com"
+            elif "play music" in text_lower or "play song" in text_lower or "favourite song" in text_lower or "favorite song" in text_lower:
+                reply_text = "Playing your favourite song Sir."
+                action_url = "https://www.youtube.com/watch?v=r03GO2AlNUo&t=26s"
+            elif "open amazon" in text_lower:
+                reply_text = "Opening Amazon Sir."
+                action_url = "https://www.amazon.com"
+
+        # Wikipedia queries
+        if not reply_text and "wikipedia" in text_lower:
+            query = user_msg.replace("wikipedia", "").replace("search", "").strip()
+            if query:
+                try:
+                    result = wikipedia.summary(query, sentences=2)
+                    reply_text = f"According to Wikipedia: {result}"
+                except Exception:
+                    reply_text = "Sorry Sir, I couldn't fetch Wikipedia results."
+
+        # Gemini AI Status tracking
+        active_client = gemini_client
+        if req.api_key and req.api_key.strip():
+            try:
+                active_client = genai.Client(api_key=req.api_key.strip())
+            except Exception as e:
+                print(f"[Custom API Key Client Error] {e}")
+
+        api_status = "online" if active_client else "offline"
+
+        if not reply_text and active_client:
+            try:
+                global_memories = load_user_knowledge()
+                memory_str = ""
+                if global_memories:
+                    memory_str = "Permanent User Knowledge/Facts: " + json.dumps(global_memories, ensure_ascii=False) + ". Use this knowledge when answering questions about the user."
+
+                prompt_parts = [
+                    "You are Jarvis, a sleek, intelligent AI assistant created by Abhii Abhishek. "
+                    "Respond concisely and helpfully in 1-3 sentences without markdown headers or bullet points. "
+                    + memory_str
+                ]
+                recent_turns = session["context"][-10:]
+                for turn in recent_turns:
+                    role_str = "User" if turn["role"] == "user" else "Jarvis"
+                    prompt_parts.append(f"{role_str}: {turn['content']}")
+                prompt_parts.append(f"User: {user_msg}\nJarvis:")
+
+                response = active_client.models.generate_content(
+                    model=req.model,
+                    contents="\n".join(prompt_parts),
+                    config=types.GenerateContentConfig(max_output_tokens=150, temperature=0.7)
+                )
+                if response and hasattr(response, 'text') and response.text:
+                    reply_text = response.text.strip()
+                    api_status = "online"
+                else:
+                    api_status = "offline"
+            except Exception as e:
+                print(f"[Gemini Error] {e}")
                 api_status = "offline"
-        except Exception as e:
-            print(f"[Gemini Error] {e}")
-            api_status = "offline"
 
-    if not reply_text:
-        if api_status == "offline":
-            reply_text = "Sorry Sir, Gemini AI limit reached or offline. Operating in predefined command mode."
-        else:
-            reply_text = "I am not sure how to respond to that Sir."
+        if not reply_text:
+            if api_status == "offline":
+                reply_text = "Sorry Sir, Gemini AI limit reached or offline. Operating in predefined command mode."
+            else:
+                reply_text = "I am not sure how to respond to that Sir."
 
-    # Record context & assistant reply
-    session["context"].append({"role": "user", "content": user_msg})
-    session["context"].append({"role": "assistant", "content": reply_text})
-    session["messages"].append({"sender": "bot", "text": reply_text, "timestamp": timestamp})
+        # Record context & assistant reply
+        session["context"].append({"role": "user", "content": user_msg})
+        session["context"].append({"role": "assistant", "content": reply_text})
+        session["messages"].append({"sender": "bot", "text": reply_text, "timestamp": timestamp})
 
-    return {
-        "reply": reply_text,
-        "action_url": action_url,
-        "api_status": api_status,
-        "timestamp": timestamp,
-        "session": session
-    }
+        return {
+            "reply": reply_text,
+            "action_url": action_url,
+            "api_status": api_status,
+            "timestamp": timestamp,
+            "session": session
+        }
+    except Exception as master_err:
+        print(f"[Master Process Chat Error] {master_err}")
+        err_reply = "Hello Sir, standing by for commands."
+        return {
+            "reply": err_reply,
+            "action_url": None,
+            "api_status": "offline",
+            "timestamp": timestamp,
+            "session": session
+        }
 
 if __name__ == "__main__":
     import uvicorn
