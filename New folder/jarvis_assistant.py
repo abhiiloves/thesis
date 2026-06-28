@@ -10,6 +10,7 @@ import wikipedia
 import pyttsx3
 import customtkinter as ctk
 from google import genai
+from google.genai import types
 
 # ==========================================
 # THREAD-SAFE TTS ENGINE WITH INTERRUPT
@@ -270,7 +271,8 @@ class JarvisBrain:
 
                 response = self.gemini_client.models.generate_content(
                     model=self.selected_model,
-                    contents=full_prompt
+                    contents=full_prompt,
+                    config=types.GenerateContentConfig(max_output_tokens=150, temperature=0.7)
                 )
                 if response and hasattr(response, 'text') and response.text:
                     reply_text = response.text.strip()

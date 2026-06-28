@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from google import genai
+from google.genai import types
 
 app = FastAPI(title="Jarvis AI Assistant Cloud API")
 
@@ -203,7 +204,8 @@ async def process_chat(req: ChatRequest):
 
             response = active_client.models.generate_content(
                 model=req.model,
-                contents="\n".join(prompt_parts)
+                contents="\n".join(prompt_parts),
+                config=types.GenerateContentConfig(max_output_tokens=150, temperature=0.7)
             )
             if response and hasattr(response, 'text') and response.text:
                 reply_text = response.text.strip()
