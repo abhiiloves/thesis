@@ -138,6 +138,8 @@ class JarvisBrain:
             'greetings': ['Hello! Sir, I am ready to assist you.', 'Hi sir, I am ready to assist you.', 'Hello Sir, I am ready to assist you.'],
             'who are my friends': ['Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir.'],
             'who is my friend': ['Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir.'],
+            'what is my name': ['Your name is Abhii Abhishek Sir!'],
+            'my name': ['Your name is Abhii Abhishek Sir!'],
             'your owner': ['Abhii Abhishek', 'Bhanu Pratap Singh'],
             'how are you': ['I am fine, thank you for asking'],
             'hello': ['Hello Sir, I am ready to assist you.'],
@@ -189,18 +191,24 @@ class JarvisBrain:
 
         text = raw_text.lower()
 
-        # Auto-detect personal / friend fact statements
-        if "birthday" in text or "friends" in text or "friend" in text or "my name" in text:
-            if "my birthday" in text or "my bday" in text:
+        # Auto-detect personal / friend fact statements (ONLY when user is TELLING, not asking)
+        is_question = "what" in text or "who" in text or "tell" in text or "when" in text
+        if not is_question:
+            if "my birthday is" in text or "my bday is" in text or "birthday on" in text:
                 save_user_knowledge("user_birthday", raw_text)
-                if "is" in text or "on" in text:
-                    resp_str = "Understood Sir, I have saved your birthday to memory."
-                    self.conversation_context.append({"role": "user", "content": raw_text})
-                    self.conversation_context.append({"role": "assistant", "content": resp_str})
-                    return resp_str
-            else:
-                save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%H%M%S')}", raw_text)
-                if "is" in text or "are" in text:
+                resp_str = "Understood Sir, I have saved your birthday to memory."
+                self.conversation_context.append({"role": "user", "content": raw_text})
+                self.conversation_context.append({"role": "assistant", "content": resp_str})
+                return resp_str
+            elif "my name is" in text:
+                save_user_knowledge("user_name", raw_text)
+                resp_str = "Understood Sir, I have saved your name to memory."
+                self.conversation_context.append({"role": "user", "content": raw_text})
+                self.conversation_context.append({"role": "assistant", "content": resp_str})
+                return resp_str
+            elif "friend" in text or "friends" in text:
+                if "is" in text or "are" in text or "name" in text:
+                    save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%H%M%S')}", raw_text)
                     resp_str = "Understood Sir, I have noted and saved your friends' details to memory."
                     self.conversation_context.append({"role": "user", "content": raw_text})
                     self.conversation_context.append({"role": "assistant", "content": resp_str})

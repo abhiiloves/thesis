@@ -65,6 +65,8 @@ PREDEFINED_RESPONSES = {
     'greetings': ['Hello! Sir, I am ready to assist you.', 'Hi sir, I am ready to assist you.', 'Hello Sir, I am ready to assist you.'],
     'who are my friends': ['Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir.'],
     'who is my friend': ['Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir.'],
+    'what is my name': ['Your name is Abhii Abhishek Sir!'],
+    'my name': ['Your name is Abhii Abhishek Sir!'],
     'your owner': ['Abhii Abhishek', 'Bhanu Pratap Singh'],
     'how are you': ['I am fine, thank you for asking'],
     'hello': ['Hello Sir, I am ready to assist you.'],
@@ -140,15 +142,18 @@ async def process_chat(req: ChatRequest):
         reply_text = None
         action_url = None
 
-        # Auto-detect personal / friend fact statements
-        if "birthday" in text_lower or "friends" in text_lower or "friend" in text_lower or "my name" in text_lower:
-            if "my birthday" in text_lower or "my bday" in text_lower:
+        # Auto-detect personal / friend fact statements (ONLY when user is TELLING, not asking)
+        is_question = "what" in text_lower or "who" in text_lower or "tell" in text_lower or "when" in text_lower
+        if not is_question:
+            if "my birthday is" in text_lower or "my bday is" in text_lower or "birthday on" in text_lower:
                 save_user_knowledge("user_birthday", user_msg)
-                if "is" in text_lower or "on" in text_lower:
-                    reply_text = "Understood Sir, I have saved your birthday to memory."
-            else:
-                save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%H%M%S')}", user_msg)
-                if "is" in text_lower or "are" in text_lower:
+                reply_text = "Understood Sir, I have saved your birthday to memory."
+            elif "my name is" in text_lower:
+                save_user_knowledge("user_name", user_msg)
+                reply_text = "Understood Sir, I have saved your name to memory."
+            elif "friend" in text_lower or "friends" in text_lower:
+                if "is" in text_lower or "are" in text_lower or "name" in text_lower:
+                    save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%H%M%S')}", user_msg)
                     reply_text = "Understood Sir, I have noted and saved your friends' details to memory."
 
         # Predefined checks with top preference matching
