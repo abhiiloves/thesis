@@ -1,5 +1,3 @@
-import { GoogleGenAI } from '@google/genai';
-
 class JarvisBrain {
   constructor() {
     this.responses = {
@@ -57,15 +55,14 @@ class JarvisBrain {
     return null;
   }
 
-  // Play alarm audio chime
   playAlarmChime() {
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
-      osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.2); // A5
+      osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.2);
       gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.5);
       osc.connect(gain);
@@ -77,7 +74,6 @@ class JarvisBrain {
     }
   }
 
-  // Handle live weather fetching
   async fetchLiveWeather(city) {
     try {
       const res = await fetch(`https://wttr.in/${encodeURIComponent(city)}?format=j1`);
@@ -171,32 +167,31 @@ class JarvisBrain {
       if (predefined) return predefined;
     }
 
-    // 7. Gemini AI with Vision & Document Multimodal context
+    // 7. Gemini REST API (Zero SDK dependency - Works 100% on Render & Vercel)
     const apiKey = customApiKey || localStorage.getItem('GEMINI_API_KEY') || import.meta.env.VITE_GEMINI_API_KEY || '';
     if (!apiKey) {
       return "Sir, please configure your Gemini API Key in Settings to analyze files, images, or answer AI queries.";
     }
 
     try {
-      const ai = new GoogleGenAI({ apiKey });
       const memories = this.getMemories();
-
       let memoryContext = "";
       if (memories.length > 0) {
         memoryContext = `\n[LONG-TERM MEMORY ABOUT USER]:\n- ${memories.join('\n- ')}\n`;
       }
 
-      const contentsPayload = [];
       let promptText = `You are Jarvis, an advanced AI assistant inspired by Iron Man.${memoryContext}\nUser prompt: ${text || "Please analyze the attached files/images."}`;
 
-      // Process attachments (Images / Documents)
+      const partsPayload = [];
+
+      // Add attachments (Images / Documents)
       if (attachments.length > 0) {
         attachments.forEach(att => {
           if (att.type === 'image') {
             const base64Data = att.data.split(',')[1];
-            contentsPayload.push({
-              inlineData: {
-                mimeType: att.mimeType,
+            partsPayload.push({
+              inline_data: {
+                mime_type: att.mimeType,
                 data: base64Data
               }
             });
@@ -206,17 +201,30 @@ class JarvisBrain {
         });
       }
 
-      contentsPayload.unshift(promptText);
+      partsPayload.unshift({ text: promptText });
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: contentsPayload,
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+      
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: partsPayload }]
+        })
       });
 
-      return response.text ? response.text.trim() : "I have processed your request, Sir.";
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error?.message || `API error code ${res.status}`);
+      }
+
+      const resData = await res.json();
+      const reply = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      return reply ? reply.trim() : "I have processed your request, Sir.";
     } catch (error) {
-      console.error("Gemini API Error:", error);
-      return `Sorry Sir, error processing request: ${error.message || 'Check connection.'}`;
+      console.error("Gemini REST API Error:", error);
+      return `Sorry Sir, error processing request: ${error.message || 'Check API key or network.'}`;
     }
   }
 }
