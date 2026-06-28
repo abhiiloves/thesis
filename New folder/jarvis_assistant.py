@@ -481,7 +481,6 @@ class JarvisGUI(ctk.CTk):
 
         welcome_msg = "Hello Sir, I am Jarvis. Standing by for new instructions!"
         self.add_bubble(welcome_msg, sender="bot", save_to_session=True)
-        self.tts.speak(welcome_msg)
 
     def load_session(self, session_id):
         if session_id not in self.sessions:
