@@ -47,6 +47,7 @@ class ChatRequest(BaseModel):
     session_id: str
     message: str
     model: str = "gemini-2.5-flash"
+    api_key: str = None
 
 @app.get("/", response_class=HTMLResponse)
 async def get_index(request: Request):
@@ -71,6 +72,12 @@ async def new_chat():
 @app.delete("/api/sessions")
 async def clear_all_history():
     sessions_db.clear()
+    return {"status": "success"}
+
+@app.delete("/api/session/{sid}")
+async def delete_single_session(sid: str):
+    if sid in sessions_db:
+        del sessions_db[sid]
     return {"status": "success"}
 
 @app.post("/api/chat")
@@ -130,7 +137,14 @@ async def process_chat(req: ChatRequest):
                 reply_text = "Sorry Sir, I couldn't fetch Wikipedia results."
 
     # Gemini AI
-    if not reply_text and gemini_client:
+    active_client = gemini_client
+    if req.api_key and req.api_key.strip():
+        try:
+            active_client = genai.Client(api_key=req.api_key.strip())
+        except Exception as e:
+            print(f"[Custom API Key Client Error] {e}")
+
+    if not reply_text and active_client:
         try:
             prompt_parts = [
                 "You are Jarvis, a sleek, intelligent AI assistant created by Abhii Abhishek. "
@@ -142,7 +156,7 @@ async def process_chat(req: ChatRequest):
                 prompt_parts.append(f"{role_str}: {turn['content']}")
             prompt_parts.append(f"User: {user_msg}\nJarvis:")
 
-            response = gemini_client.models.generate_content(
+            response = active_client.models.generate_content(
                 model=req.model,
                 contents="\n".join(prompt_parts)
             )

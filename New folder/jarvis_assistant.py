@@ -244,7 +244,7 @@ class SettingsWindow(ctk.CTkToplevel):
         self.brain = brain_engine
 
         self.title("⚙ Jarvis Settings")
-        self.geometry("380x450")
+        self.geometry("400x520")
         self.resizable(False, False)
         self.attributes("-topmost", True)
 
@@ -289,13 +289,24 @@ class SettingsWindow(ctk.CTkToplevel):
         self.model_option.set(self.brain.selected_model)
         self.model_option.pack(side="right")
 
+        # Custom API Key Input
+        key_frame = ctk.CTkFrame(self, fg_color="transparent")
+        key_frame.pack(fill="x", padx=20, pady=10)
+        ctk.CTkLabel(key_frame, text="Custom Gemini API Key:", font=ctk.CTkFont(size=14)).pack(anchor="w")
+        self.api_entry = ctk.CTkEntry(key_frame, placeholder_text="Paste new Gemini API Key here...", width=340, show="*")
+        if self.brain.api_key:
+            self.api_entry.insert(0, self.brain.api_key)
+        self.api_entry.pack(fill="x", pady=(5, 0))
+
         # Close Button
-        btn_close = ctk.CTkButton(self, text="Save & Close", fg_color="#25D366", hover_color="#1DA851", text_color="black", font=ctk.CTkFont(weight="bold"), command=self.destroy)
-        btn_close.pack(pady=25)
+        btn_close = ctk.CTkButton(self, text="Save & Close", fg_color="#25D366", hover_color="#1DA851", text_color="black", font=ctk.CTkFont(weight="bold"), command=self.save_and_close)
+        btn_close.pack(pady=20)
 
     def toggle_voice(self):
         self.tts.enabled = self.voice_switch.get() == 1
         self.voice_switch.configure(text="ON" if self.tts.enabled else "OFF")
+        if hasattr(self.parent, "sync_mute_button"):
+            self.parent.sync_mute_button()
 
     def update_rate(self, val):
         rate_val = int(val)
@@ -307,6 +318,13 @@ class SettingsWindow(ctk.CTkToplevel):
 
     def change_model(self, choice):
         self.brain.selected_model = choice
+
+    def save_and_close(self):
+        new_key = self.api_entry.get().strip()
+        if new_key:
+            self.brain.api_key = new_key
+            self.brain.init_gemini()
+        self.destroy()
 
 
 # ==========================================
@@ -402,7 +420,18 @@ class JarvisGUI(ctk.CTk):
             text_color="white",
             command=self.open_settings
         )
-        btn_settings.pack(side="right", padx=15, pady=10)
+        btn_settings.pack(side="right", padx=(5, 15), pady=10)
+
+        self.btn_quick_mute = ctk.CTkButton(
+            header_frame,
+            text="🔊 Sound ON",
+            width=100,
+            fg_color="#2A2A2A",
+            hover_color="#3A3A3A",
+            text_color="white",
+            command=self.toggle_quick_mute
+        )
+        self.btn_quick_mute.pack(side="right", padx=5, pady=10)
 
         # Chat Messages Scrollable Frame
         self.chat_frame = ctk.CTkScrollableFrame(self.main_container, fg_color="#111111", corner_radius=0)
@@ -440,6 +469,18 @@ class JarvisGUI(ctk.CTk):
         )
         self.send_btn.pack(side="right", padx=5, pady=8)
 
+    def toggle_quick_mute(self):
+        self.tts.enabled = not self.tts.enabled
+        if not self.tts.enabled:
+            self.tts.stop()
+        self.sync_mute_button()
+
+    def sync_mute_button(self):
+        if self.tts.enabled:
+            self.btn_quick_mute.configure(text="🔊 Sound ON", text_color="white", fg_color="#2A2A2A")
+        else:
+            self.btn_quick_mute.configure(text="🔇 Muted", text_color="#FF6666", fg_color="#331111")
+
     def init_first_session(self):
         self.render_history_sidebar()
         if not self.sessions:
@@ -454,17 +495,48 @@ class JarvisGUI(ctk.CTk):
 
         for sid, sdata in reversed(list(self.sessions.items())):
             title = sdata.get("title", "Chat Session")
+            item_frame = ctk.CTkFrame(self.history_frame, fg_color="#222222" if sid == self.current_session_id else "transparent", corner_radius=6)
+            item_frame.pack(fill="x", pady=2)
+
             btn = ctk.CTkButton(
-                self.history_frame,
-                text=f"💬 {title[:20]}...",
+                item_frame,
+                text=f"💬 {title[:16]}...",
                 anchor="w",
-                fg_color="#222222" if sid == self.current_session_id else "transparent",
+                fg_color="transparent",
                 hover_color="#2A2A2A",
                 text_color="white" if sid == self.current_session_id else "#CCCCCC",
                 height=36,
                 command=lambda s=sid: self.load_session(s)
             )
-            btn.pack(fill="x", pady=2)
+            btn.pack(side="left", fill="x", expand=True)
+
+            del_btn = ctk.CTkButton(
+                item_frame,
+                text="🗑️",
+                width=28,
+                height=28,
+                fg_color="transparent",
+                hover_color="#441111",
+                text_color="#FF6666",
+                command=lambda s=sid: self.delete_session(s)
+            )
+            del_btn.pack(side="right", padx=2)
+
+    def delete_session(self, session_id):
+        self.tts.stop()
+        if session_id in self.sessions:
+            del self.sessions[session_id]
+            save_chat_sessions(self.sessions)
+        if session_id == self.current_session_id:
+            self.current_session_id = None
+            self.clear_chat_ui()
+            if self.sessions:
+                first_id = list(self.sessions.keys())[0]
+                self.load_session(first_id)
+            else:
+                self.create_new_chat()
+        else:
+            self.render_history_sidebar()
 
     def create_new_chat(self):
         self.tts.stop()

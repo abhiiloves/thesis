@@ -62,20 +62,44 @@
             gap: 6px;
         }
         .session-item {
-            padding: 10px 14px;
+            padding: 8px 12px;
             border-radius: 10px;
             background: rgba(255,255,255,0.03);
             color: #CBD5E1;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .session-title-text {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            font-size: 14px;
-            transition: background 0.2s;
+            flex: 1;
         }
         .session-item:hover, .session-item.active {
             background: rgba(37, 211, 102, 0.15);
             color: #25D366;
+        }
+        .btn-del-session {
+            background: none;
+            border: none;
+            color: #64748B;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 6px;
+            display: none;
+        }
+        .session-item:hover .btn-del-session {
+            display: inline-block;
+        }
+        .btn-del-session:hover {
+            color: #EF4444;
+            background: rgba(239, 68, 68, 0.1);
         }
         .btn-clear-all {
             background: transparent;
@@ -114,6 +138,22 @@
             display: flex;
             align-items: center;
             gap: 8px;
+        }
+        .header-controls {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-mute-toggle {
+            background: #1E2029;
+            color: #FFF;
+            border: 1px solid #334155;
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         .btn-settings {
             background: #1E2029;
@@ -223,10 +263,11 @@
             background: rgba(0,0,0,0.7);
             align-items: center;
             justify-content: center;
+            z-index: 100;
         }
         .modal-content {
             background: #1E2029;
-            width: 380px;
+            width: 420px;
             padding: 24px;
             border-radius: 16px;
             border: 1px solid #334155;
@@ -239,25 +280,35 @@
         .setting-item {
             margin-bottom: 16px;
             display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .setting-item.row {
+            flex-direction: row;
             justify-content: space-between;
             align-items: center;
         }
         .setting-item label {
             font-size: 14px;
+            color: #CBD5E1;
         }
-        .setting-item select, .setting-item input[type="range"] {
+        .setting-item select, .setting-item input[type="range"], .setting-item input[type="text"] {
             background: #0D0E12;
             color: #FFF;
             border: 1px solid #334155;
-            padding: 6px;
+            padding: 8px;
             border-radius: 6px;
+            outline: none;
+        }
+        .setting-item input[type="text"]:focus {
+            border-color: #25D366;
         }
         .btn-close-modal {
             width: 100%;
             background: #25D366;
             color: #000;
             border: none;
-            padding: 10px;
+            padding: 12px;
             border-radius: 8px;
             font-weight: bold;
             cursor: pointer;
@@ -279,7 +330,10 @@
     <div class="main-chat">
         <div class="header">
             <h1>⚡ JARVIS AI ASSISTANT</h1>
-            <button class="btn-settings" onclick="toggleModal(true)">⚙ Settings</button>
+            <div class="header-controls">
+                <button class="btn-mute-toggle" id="quickMuteBtn" onclick="toggleQuickMute()">🔊 Sound ON</button>
+                <button class="btn-settings" onclick="toggleModal(true)">⚙ Settings</button>
+            </div>
         </div>
         <div class="chat-messages" id="chatMessages"></div>
         <div class="input-container">
@@ -291,16 +345,16 @@
     <!-- Settings Modal -->
     <div class="modal" id="settingsModal">
         <div class="modal-content">
-            <h2>⚙ Preferences</h2>
-            <div class="setting-item">
+            <h2>⚙ Preferences & Configuration</h2>
+            <div class="setting-item row">
                 <label>Voice Output (Browser TTS)</label>
-                <input type="checkbox" id="voiceToggle" checked>
+                <input type="checkbox" id="voiceToggle" checked onchange="syncMuteBtn()">
             </div>
-            <div class="setting-item">
+            <div class="setting-item row">
                 <label>Speech Rate</label>
                 <input type="range" id="speechRate" min="0.8" max="1.5" step="0.1" value="1.0">
             </div>
-            <div class="setting-item">
+            <div class="setting-item row">
                 <label>AI Model</label>
                 <select id="modelSelect">
                     <option value="gemini-2.5-flash">gemini-2.5-flash</option>
@@ -308,13 +362,24 @@
                     <option value="gemini-1.5-flash">gemini-1.5-flash</option>
                 </select>
             </div>
-            <button class="btn-close-modal" onclick="toggleModal(false)">Save & Close</button>
+            <div class="setting-item">
+                <label>Custom Gemini API Key (Optional)</label>
+                <input type="text" id="apiKeyInput" placeholder="Paste new Gemini API Key here...">
+                <small style="color: #64748B; font-size: 11px;">If limit expires, paste a new API key here to continue seamlessly.</small>
+            </div>
+            <button class="btn-close-modal" onclick="saveSettings()">Save & Close</button>
         </div>
     </div>
 
     <script>
         let currentSessionId = null;
         const synth = window.speechSynthesis;
+
+        // Load saved API Key on startup
+        const savedKey = localStorage.getItem('custom_gemini_api_key');
+        if (savedKey) {
+            document.getElementById('apiKeyInput').value = savedKey;
+        }
 
         async function loadSessions() {
             const res = await fetch('/api/sessions');
@@ -330,8 +395,20 @@
             sessions.reverse().forEach(s => {
                 const item = document.createElement('div');
                 item.className = `session-item ${s.id === currentSessionId ? 'active' : ''}`;
-                item.innerText = `💬 ${s.title.substring(0, 20)}...`;
-                item.onclick = () => selectSession(s);
+                
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'session-title-text';
+                titleSpan.innerText = `💬 ${s.title.substring(0, 20)}...`;
+                titleSpan.onclick = () => selectSession(s);
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'btn-del-session';
+                delBtn.innerText = '🗑️';
+                delBtn.title = 'Delete Chat';
+                delBtn.onclick = (e) => deleteSession(e, s.id);
+
+                item.appendChild(titleSpan);
+                item.appendChild(delBtn);
                 listEl.appendChild(item);
             });
         }
@@ -343,6 +420,16 @@
             currentSessionId = s.id;
             await loadSessions();
             selectSession(s);
+        }
+
+        async function deleteSession(e, sid) {
+            e.stopPropagation();
+            synth.cancel();
+            await fetch(`/api/session/${sid}`, { method: 'DELETE' });
+            if (sid === currentSessionId) {
+                currentSessionId = null;
+            }
+            await loadSessions();
         }
 
         async function clearAllHistory() {
@@ -382,15 +469,22 @@
             const msg = input.value.trim();
             if (!msg) return;
 
-            synth.cancel(); // Stop active voice
+            synth.cancel();
             input.value = '';
             addBubble(msg, 'user');
 
             const model = document.getElementById('modelSelect').value;
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+
             const res = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ session_id: currentSessionId, message: msg, model })
+                body: JSON.stringify({ 
+                    session_id: currentSessionId, 
+                    message: msg, 
+                    model: model,
+                    api_key: apiKey 
+                })
             });
             const data = await res.json();
             addBubble(data.reply, 'bot', data.timestamp);
@@ -406,6 +500,31 @@
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.rate = parseFloat(document.getElementById('speechRate').value);
             synth.speak(utterance);
+        }
+
+        function toggleQuickMute() {
+            const toggle = document.getElementById('voiceToggle');
+            toggle.checked = !toggle.checked;
+            if (!toggle.checked) synth.cancel();
+            syncMuteBtn();
+        }
+
+        function syncMuteBtn() {
+            const isChecked = document.getElementById('voiceToggle').checked;
+            const btn = document.getElementById('quickMuteBtn');
+            btn.innerText = isChecked ? "🔊 Sound ON" : "🔇 Muted";
+            btn.style.borderColor = isChecked ? "#334155" : "#EF4444";
+            btn.style.color = isChecked ? "#FFF" : "#EF4444";
+        }
+
+        function saveSettings() {
+            const key = document.getElementById('apiKeyInput').value.trim();
+            if (key) {
+                localStorage.setItem('custom_gemini_api_key', key);
+            } else {
+                localStorage.removeItem('custom_gemini_api_key');
+            }
+            toggleModal(false);
         }
 
         function handleKey(e) {
