@@ -501,38 +501,44 @@
             container.appendChild(typingRow);
             container.scrollTop = container.scrollHeight;
 
-            const res = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    session_id: currentSessionId, 
-                    message: msg, 
-                    model: model,
-                    api_key: apiKey 
-                })
-            });
-            const data = await res.json();
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        session_id: currentSessionId, 
+                        message: msg, 
+                        model: model,
+                        api_key: apiKey 
+                    })
+                });
+                const data = await res.json();
 
-            // Remove typing indicator
-            const indicator = document.getElementById('typingIndicator');
-            if (indicator) indicator.remove();
-            
-            // Update API Status Badge
-            const badge = document.getElementById('statusBadge');
-            if (data.api_status === 'offline') {
-                badge.className = 'badge-status offline';
-                badge.innerText = '🔴 AI Offline';
-            } else {
-                badge.className = 'badge-status online';
-                badge.innerText = '🟢 AI Online';
-            }
+                // Remove typing indicator
+                const indicator = document.getElementById('typingIndicator');
+                if (indicator) indicator.remove();
+                
+                // Update API Status Badge
+                const badge = document.getElementById('statusBadge');
+                if (data.api_status === 'offline') {
+                    badge.className = 'badge-status offline';
+                    badge.innerText = '🔴 AI Offline';
+                } else {
+                    badge.className = 'badge-status online';
+                    badge.innerText = '🟢 AI Online';
+                }
 
-            addBubble(data.reply, 'bot', data.timestamp);
-            speak(data.reply);
-            if (data.action_url) {
-                window.open(data.action_url, '_blank');
+                addBubble(data.reply, 'bot', data.timestamp);
+                speak(data.reply);
+                if (data.action_url) {
+                    window.open(data.action_url, '_blank');
+                }
+                loadSessions();
+            } catch (err) {
+                const indicator = document.getElementById('typingIndicator');
+                if (indicator) indicator.remove();
+                addBubble("Network connection error. Please check your internet connection or server status.", 'bot');
             }
-            loadSessions();
         }
 
         function speak(text) {

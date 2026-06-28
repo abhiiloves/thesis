@@ -50,6 +50,7 @@ if API_KEY:
 
 PREDEFINED_RESPONSES = {
     'hi': ['Hello! Sir, I am ready to assist you.', 'Hi sir, I am ready to assist you.', 'Hello Sir, I am ready to assist you.'],
+    'hey': ['Hello! Sir, I am ready to assist you.', 'Hey Sir, how can I help you today?', 'Hello Sir, standing by.'],
     'greetings': ['Hello! Sir, I am ready to assist you.', 'Hi sir, I am ready to assist you.', 'Hello Sir, I am ready to assist you.'],
     'my friends name': ['Vikas Kumar, Kushagra', 'Pradeep'],
     'your owner': ['Abhii Abhishek', 'Bhanu Pratap Singh'],
