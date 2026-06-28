@@ -65,6 +65,11 @@ PREDEFINED_RESPONSES = {
     'greetings': ['Hello! Sir, I am ready to assist you.', 'Hi sir, I am ready to assist you.', 'Hello Sir, I am ready to assist you.'],
     'who are my friends': ['Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir.'],
     'who is my friend': ['Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir.'],
+    'mere friends ke naam bato': ['Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir.'],
+    'mere friends ke naam': ['Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir.'],
+    'friends ke naam': ['Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir.'],
+    'dosto ke naam': ['Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir.'],
+    'dost ke naam': ['Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir.'],
     'what is my name': ['Your name is Abhii Abhishek Sir!'],
     'my name': ['Your name is Abhii Abhishek Sir!'],
     'your owner': ['Abhii Abhishek', 'Bhanu Pratap Singh'],
@@ -85,7 +90,7 @@ PREDEFINED_RESPONSES = {
 class ChatRequest(BaseModel):
     session_id: str
     message: str
-    model: str = "gemini-2.5-flash"
+    model: str = "gemini-2.0-flash-lite"
     api_key: str | None = None
 
 @app.get("/", response_class=HTMLResponse)
