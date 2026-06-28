@@ -4,6 +4,7 @@ import json
 import random
 import datetime
 import wikipedia
+wikipedia.set_user_agent("JarvisAIAssistant/2.0 (contact@example.com)")
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
@@ -283,14 +284,17 @@ async def process_chat(req: ChatRequest):
         if not reply_text:
             if api_status == "offline":
                 try:
-                    clean_q = re.sub(r'\b(what|who|where|when|is|are|tell|me|about|the|a|an|in|of|ka|ki|ke|ko|batao|bato)\b', '', user_msg, flags=re.IGNORECASE).strip()
-                    search_q = clean_q if len(clean_q) > 2 else user_msg
+                    clean_q = re.sub(r'\b(what|who|where|when|is|are|tell|me|about|the|a|an|in|of|ka|ki|ke|ko|batao|bato|kon|hai|kya|sir|plz|please)\b', '', user_msg, flags=re.IGNORECASE).strip()
+                    search_q = clean_q if len(clean_q) >= 2 else user_msg
+                    search_results = wikipedia.search(search_q)
+                    target_topic = search_results[0] if search_results else search_q
                     try:
-                        wiki_summary = wikipedia.summary(search_q, sentences=2)
+                        wiki_summary = wikipedia.summary(target_topic, sentences=2, auto_suggest=False)
                     except wikipedia.exceptions.DisambiguationError as de:
-                        wiki_summary = wikipedia.summary(de.options[0], sentences=2)
+                        wiki_summary = wikipedia.summary(de.options[0], sentences=2, auto_suggest=False)
                     reply_text = f"According to Wikipedia: {wiki_summary}"
-                except Exception:
+                except Exception as w_err:
+                    print(f"[Offline Wiki Search Fail] {w_err}")
                     reply_text = "Sorry Sir, Gemini AI limit reached or offline. Operating in predefined command mode."
             else:
                 reply_text = "I am not sure how to respond to that Sir."

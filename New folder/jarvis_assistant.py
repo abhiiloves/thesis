@@ -7,6 +7,7 @@ import queue
 import datetime
 import webbrowser
 import wikipedia
+wikipedia.set_user_agent("JarvisAIAssistant/2.0 (contact@example.com)")
 import pyttsx3
 import customtkinter as ctk
 from google import genai
@@ -354,17 +355,20 @@ class JarvisBrain:
 
         if self.api_status == "offline":
             try:
-                clean_q = re.sub(r'\b(what|who|where|when|is|are|tell|me|about|the|a|an|in|of|ka|ki|ke|ko|batao|bato)\b', '', raw_text, flags=re.IGNORECASE).strip()
-                search_q = clean_q if len(clean_q) > 2 else raw_text
+                clean_q = re.sub(r'\b(what|who|where|when|is|are|tell|me|about|the|a|an|in|of|ka|ki|ke|ko|batao|bato|kon|hai|kya|sir|plz|please)\b', '', raw_text, flags=re.IGNORECASE).strip()
+                search_q = clean_q if len(clean_q) >= 2 else raw_text
+                search_results = wikipedia.search(search_q)
+                target_topic = search_results[0] if search_results else search_q
                 try:
-                    wiki_summary = wikipedia.summary(search_q, sentences=2)
+                    wiki_summary = wikipedia.summary(target_topic, sentences=2, auto_suggest=False)
                 except wikipedia.exceptions.DisambiguationError as de:
-                    wiki_summary = wikipedia.summary(de.options[0], sentences=2)
+                    wiki_summary = wikipedia.summary(de.options[0], sentences=2, auto_suggest=False)
                 resp_str = f"According to Wikipedia: {wiki_summary}"
                 self.conversation_context.append({"role": "user", "content": raw_text})
                 self.conversation_context.append({"role": "assistant", "content": resp_str})
                 return resp_str
-            except Exception:
+            except Exception as w_err:
+                print(f"[Desktop Wiki Search Fail] {w_err}")
                 return "Sorry Sir, Gemini AI limit reached or offline. Operating in predefined command mode."
         return "I am not sure how to respond to that Sir."
 
