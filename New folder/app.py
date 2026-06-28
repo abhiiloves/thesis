@@ -80,7 +80,7 @@ class ChatRequest(BaseModel):
     session_id: str
     message: str
     model: str = "gemini-2.5-flash"
-    api_key: str = None
+    api_key: str | None = None
 
 @app.get("/", response_class=HTMLResponse)
 async def get_index(request: Request):

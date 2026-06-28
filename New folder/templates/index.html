@@ -515,6 +515,10 @@
 
             synth.cancel();
             input.value = '';
+
+            const model = document.getElementById('modelSelect') ? document.getElementById('modelSelect').value : "gemini-2.5-flash";
+            const apiKey = document.getElementById('apiKeyInput') ? document.getElementById('apiKeyInput').value.trim() : "";
+
             // Instant typing indicator
             const container = document.getElementById('chatMessages');
             const typingRow = document.createElement('div');
