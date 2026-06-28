@@ -4,6 +4,7 @@ import random
 import datetime
 import wikipedia
 from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -12,6 +13,15 @@ from google import genai
 from google.genai import types
 
 app = FastAPI(title="Jarvis AI Assistant Cloud API")
+
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Setup templates directory using absolute script path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
