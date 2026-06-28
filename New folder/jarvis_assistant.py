@@ -186,8 +186,11 @@ class JarvisBrain:
         text = raw_text.lower()
 
         # Auto-detect personal / friend fact statements
-        if "birthday" in text or "friends" in text or "friend" in text:
-            save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%M%S')}", raw_text)
+        if "birthday" in text or "friends" in text or "friend" in text or "my name" in text:
+            if "my birthday" in text or "my bday" in text:
+                save_user_knowledge("user_birthday", raw_text)
+            else:
+                save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%H%M%S')}", raw_text)
 
         # Check predefined responses first
         predefined = self.get_predefined_response(text)

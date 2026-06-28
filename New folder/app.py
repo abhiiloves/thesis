@@ -126,8 +126,11 @@ async def process_chat(req: ChatRequest):
     action_url = None
 
     # Auto-detect personal / friend fact statements
-    if "birthday" in text_lower or "friends" in text_lower or "friend" in text_lower:
-        save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%M%S')}", user_msg)
+    if "birthday" in text_lower or "friends" in text_lower or "friend" in text_lower or "my name" in text_lower:
+        if "my birthday" in text_lower or "my bday" in text_lower:
+            save_user_knowledge("user_birthday", user_msg)
+        else:
+            save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%H%M%S')}", user_msg)
 
     # Predefined checks with exact word boundary matching (avoids matching 'hi' in 'his')
     for key in PREDEFINED_RESPONSES:
