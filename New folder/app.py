@@ -146,10 +146,12 @@ async def process_chat(req: ChatRequest):
             else:
                 save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%H%M%S')}", user_msg)
 
-        # Predefined checks with exact word boundary matching (avoids matching 'hi' in 'his')
+        # Predefined checks with top preference matching
         for key in PREDEFINED_RESPONSES:
+            if key == 'default':
+                continue
             pattern = r'\b' + re.escape(key) + r'\b'
-            if re.search(pattern, text_lower):
+            if key in text_lower or re.search(pattern, text_lower):
                 reply_text = random.choice(PREDEFINED_RESPONSES[key])
                 break
 

@@ -516,6 +516,9 @@
             synth.cancel();
             input.value = '';
 
+            // Render user message bubble immediately
+            addBubble(msg, 'user');
+
             const model = document.getElementById('modelSelect') ? document.getElementById('modelSelect').value : "gemini-2.5-flash";
             const apiKey = document.getElementById('apiKeyInput') ? document.getElementById('apiKeyInput').value.trim() : "";
 
