@@ -1,4 +1,5 @@
 import os
+import json
 import random
 import datetime
 import wikipedia
@@ -15,8 +16,27 @@ app = FastAPI(title="Jarvis AI Assistant Cloud API")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
-# In-memory session store (or persistent dict)
+# In-memory session store & Global knowledge file
 sessions_db = {}
+KNOWLEDGE_FILE = os.path.join(BASE_DIR, "user_knowledge.json")
+
+def load_user_knowledge():
+    if os.path.exists(KNOWLEDGE_FILE):
+        try:
+            with open(KNOWLEDGE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def save_user_knowledge(key, val):
+    data = load_user_knowledge()
+    data[key] = val
+    try:
+        with open(KNOWLEDGE_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"[Save Knowledge Error] {e}")
 
 # Setup Gemini AI Client
 API_KEY = os.environ.get("GEMINI_API_KEY", "")
@@ -105,6 +125,10 @@ async def process_chat(req: ChatRequest):
     reply_text = None
     action_url = None
 
+    # Auto-detect personal fact statements
+    if "my birthday" in text_lower or "birthday is" in text_lower:
+        save_user_knowledge("birthday_info", user_msg)
+
     # Predefined checks
     for key in PREDEFINED_RESPONSES:
         if key in text_lower:
@@ -146,9 +170,15 @@ async def process_chat(req: ChatRequest):
 
     if not reply_text and active_client:
         try:
+            global_memories = load_user_knowledge()
+            memory_str = ""
+            if global_memories:
+                memory_str = "Permanent User Knowledge/Facts: " + json.dumps(global_memories, ensure_ascii=False) + ". Use this knowledge when answering questions about the user."
+
             prompt_parts = [
                 "You are Jarvis, a sleek, intelligent AI assistant created by Abhii Abhishek. "
-                "Respond concisely and helpfully in 1-3 sentences without markdown headers or bullet points."
+                "Respond concisely and helpfully in 1-3 sentences without markdown headers or bullet points. "
+                + memory_str
             ]
             recent_turns = session["context"][-10:]
             for turn in recent_turns:

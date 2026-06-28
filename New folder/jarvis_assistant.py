@@ -88,6 +88,7 @@ class TextToSpeechEngine:
 # CONVERSATION HISTORY & STORAGE MANAGER
 # ==========================================
 HISTORY_FILE = "chat_sessions.json"
+KNOWLEDGE_FILE = "user_knowledge.json"
 
 def load_chat_sessions():
     if os.path.exists(HISTORY_FILE):
@@ -104,6 +105,24 @@ def save_chat_sessions(sessions):
             json.dump(sessions, f, indent=2, ensure_ascii=False)
     except Exception as e:
         print(f"[Save Sessions Error] {e}")
+
+def load_user_knowledge():
+    if os.path.exists(KNOWLEDGE_FILE):
+        try:
+            with open(KNOWLEDGE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def save_user_knowledge(key, val):
+    data = load_user_knowledge()
+    data[key] = val
+    try:
+        with open(KNOWLEDGE_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"[Save Knowledge Error] {e}")
 
 
 # ==========================================
@@ -163,6 +182,10 @@ class JarvisBrain:
 
         text = raw_text.lower()
 
+        # Auto-detect personal fact statements (e.g., "my birthday is on...", "remember that my...")
+        if "my birthday" in text or "birthday is" in text:
+            save_user_knowledge("birthday_info", raw_text)
+
         # Check predefined responses first
         predefined = self.get_predefined_response(text)
         if predefined:
@@ -202,12 +225,19 @@ class JarvisBrain:
             except Exception:
                 return f"Could not fetch Wikipedia results due to network failure."
 
-        # Gemini AI with Conversation History (Context Memory)
+        # Gemini AI with Global Memory & Conversation History
         if self.gemini_client:
             try:
+                # Load persistent global memories
+                global_memories = load_user_knowledge()
+                memory_str = ""
+                if global_memories:
+                    memory_str = "Permanent User Knowledge/Facts: " + json.dumps(global_memories, ensure_ascii=False) + ". Use this knowledge when answering questions about the user."
+
                 prompt_parts = [
                     "You are Jarvis, a sleek, intelligent AI assistant created by Abhii Abhishek. "
-                    "Respond concisely and helpfully in 1-3 sentences without markdown headings or bullet points."
+                    "Respond concisely and helpfully in 1-3 sentences without markdown headings or bullet points. "
+                    + memory_str
                 ]
                 recent_turns = self.conversation_context[-10:]
                 for turn in recent_turns:
