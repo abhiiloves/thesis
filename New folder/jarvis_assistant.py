@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import random
 import threading
@@ -166,7 +167,9 @@ class JarvisBrain:
 
     def get_predefined_response(self, text):
         for key in self.responses:
-            if key in text:
+            # Match whole phrase or exact word boundaries to avoid matching substrings like "hi" in "his"
+            pattern = r'\b' + re.escape(key) + r'\b'
+            if re.search(pattern, text):
                 return random.choice(self.responses[key])
         return None
 
@@ -182,9 +185,9 @@ class JarvisBrain:
 
         text = raw_text.lower()
 
-        # Auto-detect personal fact statements (e.g., "my birthday is on...", "remember that my...")
-        if "my birthday" in text or "birthday is" in text:
-            save_user_knowledge("birthday_info", raw_text)
+        # Auto-detect personal / friend fact statements
+        if "birthday" in text or "friends" in text or "friend" in text:
+            save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%M%S')}", raw_text)
 
         # Check predefined responses first
         predefined = self.get_predefined_response(text)

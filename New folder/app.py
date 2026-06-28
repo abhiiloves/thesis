@@ -125,13 +125,14 @@ async def process_chat(req: ChatRequest):
     reply_text = None
     action_url = None
 
-    # Auto-detect personal fact statements
-    if "my birthday" in text_lower or "birthday is" in text_lower:
-        save_user_knowledge("birthday_info", user_msg)
+    # Auto-detect personal / friend fact statements
+    if "birthday" in text_lower or "friends" in text_lower or "friend" in text_lower:
+        save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%M%S')}", user_msg)
 
-    # Predefined checks
+    # Predefined checks with exact word boundary matching (avoids matching 'hi' in 'his')
     for key in PREDEFINED_RESPONSES:
-        if key in text_lower:
+        pattern = r'\b' + re.escape(key) + r'\b'
+        if re.search(pattern, text_lower):
             reply_text = random.choice(PREDEFINED_RESPONSES[key])
             break
 
