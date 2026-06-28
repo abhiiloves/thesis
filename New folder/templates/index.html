@@ -512,11 +512,17 @@
                         api_key: apiKey 
                     })
                 });
-                const data = await res.json();
 
                 // Remove typing indicator
                 const indicator = document.getElementById('typingIndicator');
                 if (indicator) indicator.remove();
+
+                if (!res.ok) {
+                    addBubble(`Server notice (HTTP ${res.status}): Render service is warming up or temporarily busy. Please wait a moment and try again.`, 'bot');
+                    return;
+                }
+
+                const data = await res.json();
                 
                 // Update API Status Badge
                 const badge = document.getElementById('statusBadge');
@@ -537,7 +543,7 @@
             } catch (err) {
                 const indicator = document.getElementById('typingIndicator');
                 if (indicator) indicator.remove();
-                addBubble("Network connection error. Please check your internet connection or server status.", 'bot');
+                addBubble("Connectivity notice: Unable to connect to backend server. If using Render, please wait 30 seconds while the free instance wakes up.", 'bot');
             }
         }
 
