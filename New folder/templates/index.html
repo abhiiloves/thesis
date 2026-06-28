@@ -141,7 +141,27 @@
         }
         .header-controls {
             display: flex;
+            align-items: center;
             gap: 10px;
+        }
+        .badge-status {
+            font-size: 13px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .badge-status.online {
+            background: rgba(37, 211, 102, 0.15);
+            color: #25D366;
+            border: 1px solid rgba(37, 211, 102, 0.3);
+        }
+        .badge-status.offline {
+            background: rgba(239, 68, 68, 0.15);
+            color: #EF4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
         }
         .btn-mute-toggle {
             background: #1E2029;
@@ -331,6 +351,7 @@
         <div class="header">
             <h1>⚡ JARVIS AI ASSISTANT</h1>
             <div class="header-controls">
+                <span id="statusBadge" class="badge-status online">🟢 AI Online</span>
                 <button class="btn-mute-toggle" id="quickMuteBtn" onclick="toggleQuickMute()">🔊 Sound ON</button>
                 <button class="btn-settings" onclick="toggleModal(true)">⚙ Settings</button>
             </div>
@@ -487,6 +508,17 @@
                 })
             });
             const data = await res.json();
+            
+            // Update API Status Badge
+            const badge = document.getElementById('statusBadge');
+            if (data.api_status === 'offline') {
+                badge.className = 'badge-status offline';
+                badge.innerText = '🔴 AI Offline';
+            } else {
+                badge.className = 'badge-status online';
+                badge.innerText = '🟢 AI Online';
+            }
+
             addBubble(data.reply, 'bot', data.timestamp);
             speak(data.reply);
             if (data.action_url) {

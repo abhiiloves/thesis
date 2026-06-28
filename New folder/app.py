@@ -139,6 +139,15 @@ async def process_chat(req: ChatRequest):
             reply_text = random.choice(PREDEFINED_RESPONSES[key])
             break
 
+    # Time & Date Queries
+    if not reply_text:
+        if "time" in text_lower or "current time" in text_lower or "what time" in text_lower:
+            now_time = datetime.datetime.now().strftime("%I:%M %p")
+            reply_text = f"The current time is {now_time}, Sir."
+        elif "date" in text_lower or "today's date" in text_lower or "what date" in text_lower:
+            now_date = datetime.datetime.now().strftime("%A, %B %d, %Y")
+            reply_text = f"Today's date is {now_date}, Sir."
+
     # Actionable Tasks
     if not reply_text:
         if "open youtube" in text_lower:
@@ -164,13 +173,15 @@ async def process_chat(req: ChatRequest):
             except Exception:
                 reply_text = "Sorry Sir, I couldn't fetch Wikipedia results."
 
-    # Gemini AI
+    # Gemini AI Status tracking
     active_client = gemini_client
     if req.api_key and req.api_key.strip():
         try:
             active_client = genai.Client(api_key=req.api_key.strip())
         except Exception as e:
             print(f"[Custom API Key Client Error] {e}")
+
+    api_status = "online" if active_client else "offline"
 
     if not reply_text and active_client:
         try:
@@ -196,11 +207,18 @@ async def process_chat(req: ChatRequest):
             )
             if response and hasattr(response, 'text') and response.text:
                 reply_text = response.text.strip()
+                api_status = "online"
+            else:
+                api_status = "offline"
         except Exception as e:
             print(f"[Gemini Error] {e}")
+            api_status = "offline"
 
     if not reply_text:
-        reply_text = "Sorry Sir, I am currently operating in offline mode."
+        if api_status == "offline":
+            reply_text = "Sorry Sir, Gemini AI limit reached or offline. Operating in predefined command mode."
+        else:
+            reply_text = "I am not sure how to respond to that Sir."
 
     # Record context & assistant reply
     session["context"].append({"role": "user", "content": user_msg})
@@ -210,6 +228,7 @@ async def process_chat(req: ChatRequest):
     return {
         "reply": reply_text,
         "action_url": action_url,
+        "api_status": api_status,
         "timestamp": timestamp,
         "session": session
     }

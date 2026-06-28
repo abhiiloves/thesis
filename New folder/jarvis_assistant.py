@@ -199,6 +199,20 @@ class JarvisBrain:
             self.conversation_context.append({"role": "assistant", "content": predefined})
             return predefined
 
+        # Time & Date Queries
+        if "time" in text or "current time" in text or "what time" in text:
+            now_time = datetime.datetime.now().strftime("%I:%M %p")
+            resp_str = f"The current time is {now_time}, Sir."
+            self.conversation_context.append({"role": "user", "content": raw_text})
+            self.conversation_context.append({"role": "assistant", "content": resp_str})
+            return resp_str
+        if "date" in text or "today's date" in text or "what date" in text:
+            now_date = datetime.datetime.now().strftime("%A, %B %d, %Y")
+            resp_str = f"Today's date is {now_date}, Sir."
+            self.conversation_context.append({"role": "user", "content": raw_text})
+            self.conversation_context.append({"role": "assistant", "content": resp_str})
+            return resp_str
+
         # Web & system triggers
         if "open youtube" in text:
             webbrowser.open("https://www.youtube.com")
@@ -232,9 +246,9 @@ class JarvisBrain:
                 return f"Could not fetch Wikipedia results due to network failure."
 
         # Gemini AI with Global Memory & Conversation History
+        self.api_status = "online" if self.gemini_client else "offline"
         if self.gemini_client:
             try:
-                # Load persistent global memories
                 global_memories = load_user_knowledge()
                 memory_str = ""
                 if global_memories:
@@ -262,11 +276,17 @@ class JarvisBrain:
                     reply_text = response.text.strip()
                     self.conversation_context.append({"role": "user", "content": raw_text})
                     self.conversation_context.append({"role": "assistant", "content": reply_text})
+                    self.api_status = "online"
                     return reply_text
+                else:
+                    self.api_status = "offline"
             except Exception as err:
                 print(f"[Gemini API Error] {err}")
+                self.api_status = "offline"
 
-        return "Sorry Sir, I am currently unable to connect to Gemini AI services."
+        if self.api_status == "offline":
+            return "Sorry Sir, Gemini AI limit reached or offline. Operating in predefined command mode."
+        return "I am not sure how to respond to that Sir."
 
 
 # ==========================================
@@ -468,6 +488,14 @@ class JarvisGUI(ctk.CTk):
             command=self.toggle_quick_mute
         )
         self.btn_quick_mute.pack(side="right", padx=5, pady=10)
+
+        self.lbl_api_status = ctk.CTkLabel(
+            header_frame,
+            text="🟢 AI Online",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color="#25D366"
+        )
+        self.lbl_api_status.pack(side="right", padx=10, pady=10)
 
         # Chat Messages Scrollable Frame
         self.chat_frame = ctk.CTkScrollableFrame(self.main_container, fg_color="#111111", corner_radius=0)
@@ -729,6 +757,11 @@ class JarvisGUI(ctk.CTk):
 
     def bot_reply_thread(self, user_msg):
         reply = self.ai.process_input(user_msg)
+        status = getattr(self.ai, "api_status", "online")
+        if status == "offline":
+            self.after(0, lambda: self.lbl_api_status.configure(text="🔴 AI Offline", text_color="#FF6666"))
+        else:
+            self.after(0, lambda: self.lbl_api_status.configure(text="🟢 AI Online", text_color="#25D366"))
         self.after(0, lambda: self.add_bubble(reply, sender="bot"))
         self.tts.speak(reply)
 
