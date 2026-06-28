@@ -228,11 +228,20 @@ async def process_chat(req: ChatRequest):
                     prompt_parts.append(f"{role_str}: {turn['content']}")
                 prompt_parts.append(f"User: {user_msg}\nJarvis:")
 
-                response = active_client.models.generate_content(
-                    model=req.model,
-                    contents="\n".join(prompt_parts),
-                    config=types.GenerateContentConfig(max_output_tokens=150, temperature=0.7)
-                )
+                try:
+                    response = active_client.models.generate_content(
+                        model=req.model,
+                        contents="\n".join(prompt_parts),
+                        config=types.GenerateContentConfig(max_output_tokens=150, temperature=0.7)
+                    )
+                except Exception as model_err:
+                    print(f"[Model Fallback Triggered] {model_err}")
+                    response = active_client.models.generate_content(
+                        model="gemini-2.0-flash",
+                        contents="\n".join(prompt_parts),
+                        config=types.GenerateContentConfig(max_output_tokens=150, temperature=0.7)
+                    )
+
                 if response and hasattr(response, 'text') and response.text:
                     reply_text = response.text.strip()
                     api_status = "online"

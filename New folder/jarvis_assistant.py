@@ -152,7 +152,7 @@ class JarvisBrain:
             'default': ['I am not sure how to respond to that.']
         }
 
-        self.selected_model = "gemini-2.5-flash"
+        self.selected_model = "gemini-2.0-flash"
         self.api_key = os.environ.get("GEMINI_API_KEY", "")
         self.gemini_client = None
         self.init_gemini()
@@ -290,11 +290,20 @@ class JarvisBrain:
 
                 full_prompt = "\n".join(prompt_parts)
 
-                response = self.gemini_client.models.generate_content(
-                    model=self.selected_model,
-                    contents=full_prompt,
-                    config=types.GenerateContentConfig(max_output_tokens=150, temperature=0.7)
-                )
+                try:
+                    response = self.gemini_client.models.generate_content(
+                        model=self.selected_model,
+                        contents=full_prompt,
+                        config=types.GenerateContentConfig(max_output_tokens=150, temperature=0.7)
+                    )
+                except Exception as model_err:
+                    print(f"[Desktop Model Fallback] {model_err}")
+                    response = self.gemini_client.models.generate_content(
+                        model="gemini-2.0-flash",
+                        contents=full_prompt,
+                        config=types.GenerateContentConfig(max_output_tokens=150, temperature=0.7)
+                    )
+
                 if response and hasattr(response, 'text') and response.text:
                     reply_text = response.text.strip()
                     self.conversation_context.append({"role": "user", "content": raw_text})
