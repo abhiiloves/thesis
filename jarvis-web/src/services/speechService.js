@@ -1,10 +1,24 @@
-// Browser Web Speech API Service
+// Browser Web Speech API Service with asynchronous voice loading & clean state recovery
 
 class SpeechService {
   constructor() {
     this.synth = typeof window !== 'undefined' && 'speechSynthesis' in window ? window.speechSynthesis : null;
+    this.voices = [];
     this.recognition = null;
+    
+    if (this.synth) {
+      this.loadVoices();
+      if (this.synth.onvoiceschanged !== undefined) {
+        this.synth.onvoiceschanged = () => this.loadVoices();
+      }
+    }
     this.initRecognition();
+  }
+
+  loadVoices() {
+    if (this.synth) {
+      this.voices = this.synth.getVoices();
+    }
   }
 
   initRecognition() {
@@ -22,19 +36,24 @@ class SpeechService {
   speak(text, onEndCallback) {
     if (!this.synth || !text) return;
 
-    // Cancel ongoing speech
     this.synth.cancel();
 
-    // Remove code blocks or special markdown characters for natural speech
-    const cleanText = text.replace(/```[\s\S]*?```/g, 'Code block output omitted.').replace(/[*_#`~]/g, '');
+    // Clean markdown formatting characters for speech
+    const cleanText = text
+      .replace(/```[\s\S]*?```/g, 'Code block omitted.')
+      .replace(/!\[.*?\]\(.*?\)/g, 'Generated image.')
+      .replace(/[*_#`~]/g, '');
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
 
-    // Try selecting a natural English voice
-    const voices = this.synth.getVoices();
-    const preferredVoice = voices.find(v => (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('David')) && v.lang.startsWith('en'));
+    if (this.voices.length === 0) this.loadVoices();
+
+    const preferredVoice = this.voices.find(v => 
+      (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('David') || v.name.includes('Zira')) && v.lang.startsWith('en')
+    ) || this.voices.find(v => v.lang.startsWith('en'));
+
     if (preferredVoice) {
       utterance.voice = preferredVoice;
     }
@@ -53,7 +72,7 @@ class SpeechService {
     }
   }
 
-  startListening(onResultCallback, onErrorCallback) {
+  startListening(onResultCallback, onErrorCallback, onEndCallback) {
     if (!this.recognition) {
       if (onErrorCallback) onErrorCallback('Speech recognition is not supported in this browser.');
       return;
@@ -68,10 +87,14 @@ class SpeechService {
       if (onErrorCallback) onErrorCallback(event.error);
     };
 
+    this.recognition.onend = () => {
+      if (onEndCallback) onEndCallback();
+    };
+
     try {
       this.recognition.start();
     } catch (err) {
-      console.warn('Recognition already started or error:', err);
+      console.warn('Recognition start warning:', err);
     }
   }
 

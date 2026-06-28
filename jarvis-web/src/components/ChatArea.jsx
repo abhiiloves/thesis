@@ -13,7 +13,7 @@ export default function ChatArea({ messages, onSelectStarter, isThinking }) {
   const starterCards = [
     { title: "🎨 Image Generation", desc: "Type 'Generate image of a futuristic cyberpunk city'", action: "Generate image of a futuristic cyberpunk city" },
     { title: "📷 Vision & Analysis", desc: "Upload a screenshot, math question, or document", action: "Summarize this attached document." },
-    { title: "⏰ Alarms & Timers", desc: "Type 'Remind me in 10 seconds to stretch'", action: "Remind me in 10 seconds to take a break" }
+    { title: "⏰ Alarms & Timers", desc: "Type 'Remind me in 10 seconds to take a break'", action: "Remind me in 10 seconds to take a break" }
   ];
 
   return (
@@ -66,13 +66,12 @@ function MessageBubble({ message }) {
         {isUser ? <User size={20} /> : <Bot size={20} />}
       </div>
       <div className="bubble-content">
-        {/* Render Attachments if present */}
         {message.attachments && message.attachments.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
             {message.attachments.map((att, i) => (
               <div key={i}>
                 {att.type === 'image' ? (
-                  <img src={att.data} alt="uploaded" style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)' }} />
+                  <img src={att.data} alt="uploaded" style={{ maxWidth: '220px', maxHeight: '220px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)' }} />
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.1)', padding: '6px 10px', borderRadius: '6px', fontSize: '0.8rem' }}>
                     <FileText size={16} /> <span>{att.name}</span>
@@ -93,14 +92,26 @@ function FormattedText({ content }) {
 
   if (!content) return null;
 
-  // Render markdown images ![alt](url)
-  const imageRegex = /!\[(.*?)\]\((.*?)\)/g;
   const parts = content.split(/(```[\s\S]*?```|!\[.*?\]\(.*?\))/g);
 
   const handleCopy = (codeText, idx) => {
     navigator.clipboard.writeText(codeText);
     setCopiedIndex(idx);
     setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  const renderInlineStyles = (textChunk) => {
+    // Basic bold and inline code styling
+    const tokens = textChunk.split(/(\*\*.*?\*\*|`.*?`)/g);
+    return tokens.map((token, i) => {
+      if (token.startsWith('**') && token.endsWith('**')) {
+        return <strong key={i} style={{ color: '#fff', fontWeight: 600 }}>{token.slice(2, -2)}</strong>;
+      }
+      if (token.startsWith('`') && token.endsWith('`')) {
+        return <code key={i} style={{ background: 'rgba(255,255,255,0.15)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.88em', fontFamily: 'var(--font-mono)' }}>{token.slice(1, -1)}</code>;
+      }
+      return token;
+    });
   };
 
   return (
@@ -125,7 +136,6 @@ function FormattedText({ content }) {
           );
         }
 
-        // Match ![alt](url) for Generated AI Art
         const imgMatch = part.match(/^!\[(.*?)\]\((.*?)\)$/);
         if (imgMatch) {
           const altText = imgMatch[1];
@@ -143,7 +153,7 @@ function FormattedText({ content }) {
 
         return (
           <p key={idx} style={{ whiteSpace: 'pre-wrap', marginBottom: idx < parts.length - 1 ? '8px' : '0' }}>
-            {part}
+            {renderInlineStyles(part)}
           </p>
         );
       })}

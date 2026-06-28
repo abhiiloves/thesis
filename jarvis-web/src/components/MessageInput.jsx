@@ -1,18 +1,29 @@
-import React, { useState, useRef } from 'react';
-import { Send, Mic, MicOff, Paperclip, X, FileText, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Send, Mic, MicOff, Paperclip, X, FileText } from 'lucide-react';
 import { speechService } from '../services/speechService';
 
 export default function MessageInput({ onSendMessage, disabled }) {
   const [text, setText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [attachments, setAttachments] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
+  const textareaRef = useRef(null);
+
+  // Dynamic Textarea Auto-Resize
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  }, [text]);
 
   const handleSend = () => {
     if ((!text.trim() && attachments.length === 0) || disabled) return;
     onSendMessage(text, attachments);
     setText('');
     setAttachments([]);
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
 
   const handleKeyDown = (e) => {
@@ -30,22 +41,22 @@ export default function MessageInput({ onSendMessage, disabled }) {
       setIsListening(true);
       speechService.startListening(
         (transcript) => {
-          setText(transcript);
+          setText(prev => (prev ? `${prev} ${transcript}` : transcript));
           setIsListening(false);
         },
         (error) => {
           console.warn('Speech error:', error);
+          setIsListening(false);
+        },
+        () => {
           setIsListening(false);
         }
       );
     }
   };
 
-  const handleFileUpload = (e) => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-
-    files.forEach(file => {
+  const processFiles = (files) => {
+    Array.from(files).forEach(file => {
       const reader = new FileReader();
       if (file.type.startsWith('image/')) {
         reader.onload = (event) => {
@@ -59,7 +70,6 @@ export default function MessageInput({ onSendMessage, disabled }) {
         };
         reader.readAsDataURL(file);
       } else {
-        // Read text/documents
         reader.onload = (event) => {
           setAttachments(prev => [...prev, {
             id: Date.now() + Math.random(),
@@ -72,8 +82,30 @@ export default function MessageInput({ onSendMessage, disabled }) {
         reader.readAsText(file);
       }
     });
+  };
 
+  const handleFileUpload = (e) => {
+    if (e.target.files && e.target.files.length) {
+      processFiles(e.target.files);
+    }
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length) {
+      processFiles(e.dataTransfer.files);
+    }
   };
 
   const removeAttachment = (id) => {
@@ -81,10 +113,15 @@ export default function MessageInput({ onSendMessage, disabled }) {
   };
 
   return (
-    <div className="input-section">
+    <div 
+      className="input-section"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       {/* Attachment Previews */}
       {attachments.length > 0 && (
-        <div style={{ display: 'flex', gap: '8px', padding: '8px 12px', background: 'var(--bg-card)', borderRadius: '12px 12px 0 0', border: '1px solid var(--border-color)', borderBottom: 'none' }}>
+        <div style={{ display: 'flex', gap: '8px', padding: '8px 12px', background: 'var(--bg-card)', borderRadius: '12px 12px 0 0', border: '1px solid var(--border-color)', borderBottom: 'none', flexWrap: 'wrap' }}>
           {attachments.map(att => (
             <div key={att.id} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-tertiary)', padding: '6px 10px', borderRadius: '8px', fontSize: '0.8rem', color: 'var(--text-primary)' }}>
               {att.type === 'image' ? (
@@ -104,11 +141,18 @@ export default function MessageInput({ onSendMessage, disabled }) {
         </div>
       )}
 
-      <div className="input-box-wrapper" style={{ borderRadius: attachments.length > 0 ? '0 0 20px 20px' : '20px' }}>
+      <div 
+        className="input-box-wrapper" 
+        style={{ 
+          borderRadius: attachments.length > 0 ? '0 0 20px 20px' : '20px',
+          borderColor: isDragging ? 'var(--accent-green)' : undefined,
+          boxShadow: isDragging ? '0 0 25px var(--accent-glow)' : undefined
+        }}
+      >
         <button 
           className="mic-btn" 
           onClick={() => fileInputRef.current && fileInputRef.current.click()}
-          title="Upload Image or Document"
+          title="Upload Image or Document (or drag & drop)"
         >
           <Paperclip size={20} />
         </button>
@@ -131,8 +175,9 @@ export default function MessageInput({ onSendMessage, disabled }) {
         </button>
 
         <textarea
+          ref={textareaRef}
           className="chat-input"
-          placeholder={isListening ? "Listening..." : "Ask Jarvis, analyze files, set timers, or generate images..."}
+          placeholder={isListening ? "Listening..." : "Ask Jarvis, attach files, set timers..."}
           rows={1}
           value={text}
           onChange={(e) => setText(e.target.value)}

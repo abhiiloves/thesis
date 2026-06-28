@@ -22,9 +22,15 @@ class JarvisBrain {
   }
 
   saveMemory(fact) {
+    if (!fact || typeof fact !== 'string') return;
+    const cleanFact = fact.trim();
+    if (!cleanFact) return;
+
     const memories = this.getMemories();
-    if (!memories.includes(fact)) {
-      memories.push(fact);
+    const exists = memories.some(m => m.toLowerCase() === cleanFact.toLowerCase());
+    
+    if (!exists) {
+      memories.push(cleanFact);
       localStorage.setItem('JARVIS_LONG_TERM_MEMORY', JSON.stringify(memories));
     }
   }
@@ -55,9 +61,14 @@ class JarvisBrain {
     return null;
   }
 
-  playAlarmChime() {
+  async playAlarmChime() {
     try {
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const audioCtx = new AudioCtx();
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sine';
@@ -76,7 +87,10 @@ class JarvisBrain {
 
   async fetchLiveWeather(city) {
     try {
-      const res = await fetch(`https://wttr.in/${encodeURIComponent(city)}?format=j1`);
+      const cleanCity = city.trim();
+      if (!cleanCity) return "Please specify a city name, Sir.";
+
+      const res = await fetch(`https://wttr.in/${encodeURIComponent(cleanCity)}?format=j1`);
       if (!res.ok) throw new Error("Weather service unreachable");
       const data = await res.json();
       const current = data.current_condition[0];
@@ -85,7 +99,7 @@ class JarvisBrain {
       const humidity = current.humidity;
       const windSpeed = current.windspeedKmph;
 
-      return `Current Weather in ${city.toUpperCase()}: ${tempC}°C, ${desc}. Humidity: ${humidity}%, Wind: ${windSpeed} km/h.`;
+      return `Current Weather in ${cleanCity.toUpperCase()}: ${tempC}°C, ${desc}. Humidity: ${humidity}%, Wind: ${windSpeed} km/h.`;
     } catch (e) {
       return `Sorry Sir, I could not fetch live weather data for ${city} right now.`;
     }
@@ -104,12 +118,12 @@ class JarvisBrain {
       }
     }
 
-    // 2. Check Reminder / Alarm commands
-    const reminderMatch = lower.match(/(?:remind me in|timer|alarm for)\s+(\d+)\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?)\s*(?:to|for)?\s*(.*)/i);
+    // 2. Check Reminder / Alarm commands (Flexible RegEx)
+    const reminderMatch = lower.match(/(?:set\s+)?(?:remind me in|timer|alarm|remind me)\s*(?:for|in)?\s*(\d+)\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?)\s*(?:to|for)?\s*(.*)/i);
     if (reminderMatch) {
       const num = parseInt(reminderMatch[1]);
       const unit = reminderMatch[2].toLowerCase();
-      const task = reminderMatch[3] || "your reminder";
+      const task = reminderMatch[3] ? reminderMatch[3].trim() : "your scheduled task";
 
       let multiplier = 1000;
       if (unit.startsWith("min")) multiplier = 60 * 1000;
@@ -134,9 +148,9 @@ class JarvisBrain {
     }
 
     // 3. Check Live Weather queries
-    if (lower.includes("weather in") || lower.includes("weather of")) {
-      const cityMatch = text.match(/weather (?:in|of)\s+([a-zA-Z\s]+)/i);
-      if (cityMatch && cityMatch[1]) {
+    if (lower.includes("weather")) {
+      const cityMatch = text.match(/weather\s+(?:in|of|for|at)?\s*([a-zA-Z\s]+)/i);
+      if (cityMatch && cityMatch[1] && cityMatch[1].trim().length > 1) {
         return await this.fetchLiveWeather(cityMatch[1].trim());
       }
     }
@@ -176,7 +190,7 @@ class JarvisBrain {
     const memories = this.getMemories();
     let memoryContext = "";
     if (memories.length > 0) {
-      memoryContext = `\n[LONG-TERM MEMORY ABOUT USER]:\n- ${memories.join('\n- ')}\n`;
+      memoryContext = `\n[GLOBAL MEMORY STORED ABOUT USER ACROSS ALL CHATS]:\n- ${memories.join('\n- ')}\n`;
     }
 
     let promptText = `You are Jarvis, an advanced AI assistant inspired by Iron Man.${memoryContext}\nUser prompt: ${text || "Please analyze the attached files/images."}`;
@@ -193,14 +207,13 @@ class JarvisBrain {
             }
           });
         } else if (att.type === 'document') {
-          promptText += `\n\n[ATTACHED FILE CONTEXT - ${att.name}]:\n${att.data.substring(0, 10000)}`;
+          promptText += `\n\n[ATTACHED FILE CONTEXT - ${att.name}]:\n${att.data.substring(0, 12000)}`;
         }
       });
     }
 
     partsPayload.unshift({ text: promptText });
 
-    // Candidate models to try sequentially
     const modelCandidates = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-exp'];
     let lastError = null;
 
