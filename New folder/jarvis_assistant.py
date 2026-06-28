@@ -222,16 +222,29 @@ class JarvisBrain:
                     self.conversation_context.append({"role": "assistant", "content": resp_str})
                     return resp_str
 
-        # Flexible Query Detection (Friends & User Name in English & Hinglish)
-        is_friend_word = any(w in text for w in ["friend", "friends", "dost", "dosto"])
-        is_query_word = any(w in text for w in ["name", "naam", "who", "bato", "batao", "list", "kaun", "kon"])
-        if is_friend_word and is_query_word:
+        # Flexible Query Detection (Comprehensive Offline Intent Matcher)
+        if ("your name" in text or "tera naam" in text or "apka naam" in text or "aapka naam" in text) and not ("my name" in text or "mera naam" in text):
+            resp_str = "I am Jarvis, your intelligent AI assistant created by Abhii Abhishek Sir!"
+            self.conversation_context.append({"role": "user", "content": raw_text})
+            self.conversation_context.append({"role": "assistant", "content": resp_str})
+            return resp_str
+        elif "who are you" in text or "tum kaun ho" in text or "tum kon ho" in text:
+            resp_str = "I am Jarvis, your intelligent AI assistant created by Abhii Abhishek Sir!"
+            self.conversation_context.append({"role": "user", "content": raw_text})
+            self.conversation_context.append({"role": "assistant", "content": resp_str})
+            return resp_str
+        elif any(w in text for w in ["friend", "friends", "dost", "dosto"]) and any(w in text for w in ["name", "naam", "who", "bato", "batao", "list", "kaun", "kon"]):
             resp_str = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir."
             self.conversation_context.append({"role": "user", "content": raw_text})
             self.conversation_context.append({"role": "assistant", "content": resp_str})
             return resp_str
         elif any(w in text for w in ["mera naam", "my name"]) and any(w in text for w in ["kya", "what", "batao", "bato", "tell"]):
             resp_str = "Your name is Abhii Abhishek Sir!"
+            self.conversation_context.append({"role": "user", "content": raw_text})
+            self.conversation_context.append({"role": "assistant", "content": resp_str})
+            return resp_str
+        elif any(w in text for w in ["who created", "who made", "owner", "malik", "kisne banaya"]):
+            resp_str = "I was created by Abhii Abhishek at NGF College, Palwal Sir!"
             self.conversation_context.append({"role": "user", "content": raw_text})
             self.conversation_context.append({"role": "assistant", "content": resp_str})
             return resp_str

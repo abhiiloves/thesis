@@ -164,14 +164,25 @@ async def process_chat(req: ChatRequest):
                     save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%H%M%S')}", user_msg)
                     reply_text = "Understood Sir, I have noted and saved your friends' details to memory."
 
-        # Flexible Query Detection (Friends & User Name in English & Hinglish)
+        # Flexible Query Detection (Comprehensive Offline Intent Matcher)
         if not reply_text:
-            is_friend_word = any(w in text_lower for w in ["friend", "friends", "dost", "dosto"])
-            is_query_word = any(w in text_lower for w in ["name", "naam", "who", "bato", "batao", "list", "kaun", "kon"])
-            if is_friend_word and is_query_word:
+            # 1. Assistant Name Queries ("what is your name", "your name", "tera naam", etc.)
+            if ("your name" in text_lower or "tera naam" in text_lower or "apka naam" in text_lower or "aapka naam" in text_lower) and not ("my name" in text_lower or "mera naam" in text_lower):
+                reply_text = "I am Jarvis, your intelligent AI assistant created by Abhii Abhishek Sir!"
+            elif "who are you" in text_lower or "tum kaun ho" in text_lower or "tum kon ho" in text_lower:
+                reply_text = "I am Jarvis, your intelligent AI assistant created by Abhii Abhishek Sir!"
+            
+            # 2. User Friends Queries
+            elif any(w in text_lower for w in ["friend", "friends", "dost", "dosto"]) and any(w in text_lower for w in ["name", "naam", "who", "bato", "batao", "list", "kaun", "kon"]):
                 reply_text = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir."
+            
+            # 3. User Name Queries
             elif any(w in text_lower for w in ["mera naam", "my name"]) and any(w in text_lower for w in ["kya", "what", "batao", "bato", "tell"]):
                 reply_text = "Your name is Abhii Abhishek Sir!"
+            
+            # 4. Creator / Owner Queries
+            elif any(w in text_lower for w in ["who created", "who made", "owner", "malik", "kisne banaya"]):
+                reply_text = "I was created by Abhii Abhishek at NGF College, Palwal Sir!"
 
         # Predefined checks with top preference matching
         if not reply_text:
