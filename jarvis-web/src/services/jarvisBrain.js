@@ -181,7 +181,7 @@ class JarvisBrain {
       if (predefined) return predefined;
     }
 
-    // 7. Gemini REST API with Multi-Model Fallback Engine
+    // 7. Gemini REST API with Comprehensive Multi-Model Fallback Engine
     const apiKey = customApiKey || localStorage.getItem('GEMINI_API_KEY') || import.meta.env.VITE_GEMINI_API_KEY || '';
     if (!apiKey) {
       return "Sir, please configure your Gemini API Key in Settings to analyze files, images, or answer AI queries.";
@@ -214,7 +214,16 @@ class JarvisBrain {
 
     partsPayload.unshift({ text: promptText });
 
-    const modelCandidates = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-exp'];
+    // Comprehensive model candidate array across v1beta and v1 endpoints
+    const modelCandidates = [
+      'gemini-1.5-flash-latest',
+      'gemini-1.5-flash',
+      'gemini-2.0-flash',
+      'gemini-1.5-pro-latest',
+      'gemini-1.5-pro',
+      'gemini-pro'
+    ];
+
     let lastError = null;
 
     for (const model of modelCandidates) {
