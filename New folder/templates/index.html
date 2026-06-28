@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS AI Assistant | Live Cloud</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+        }
+        body {
+            background-color: #0A0A0C;
+            color: #E2E8F0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: #121318;
+            border-right: 1px solid #1E2029;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+        }
+        .btn-new-chat {
+            background: linear-gradient(135deg, #25D366, #1DA851);
+            color: #000;
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+        .btn-new-chat:hover {
+            transform: translateY(-1px);
+            opacity: 0.95;
+        }
+        .history-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64748B;
+            margin: 20px 0 10px 4px;
+        }
+        .session-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .session-item {
+            padding: 10px 14px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.03);
+            color: #CBD5E1;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .session-item:hover, .session-item.active {
+            background: rgba(37, 211, 102, 0.15);
+            color: #25D366;
+        }
+        .btn-clear-all {
+            background: transparent;
+            border: 1px solid #331111;
+            color: #EF4444;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+        .btn-clear-all:hover {
+            background: #2D1215;
+        }
+
+        /* Main Chat Area */
+        .main-chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0D0E12;
+        }
+        .header {
+            height: 60px;
+            border-bottom: 1px solid #1E2029;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            background: #121318;
+        }
+        .header h1 {
+            font-size: 18px;
+            color: #25D366;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-settings {
+            background: #1E2029;
+            color: #FFF;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .message-row {
+            display: flex;
+            flex-direction: column;
+            max-width: 70%;
+        }
+        .message-row.user {
+            align-self: flex-end;
+        }
+        .message-row.bot {
+            align-self: flex-start;
+        }
+        .bubble {
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 15px;
+            line-height: 1.5;
+            position: relative;
+        }
+        .message-row.user .bubble {
+            background: #25D366;
+            color: #000;
+            border-bottom-right-radius: 4px;
+        }
+        .message-row.bot .bubble {
+            background: #1E2029;
+            color: #F1F5F9;
+            border-bottom-left-radius: 4px;
+        }
+        .sub-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 4px;
+            font-size: 11px;
+            color: #64748B;
+            padding: 0 4px;
+        }
+        .message-row.user .sub-meta {
+            color: #15803D;
+        }
+        .btn-copy {
+            background: none;
+            border: none;
+            color: #94A3B8;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .btn-copy:hover {
+            color: #FFF;
+        }
+
+        /* Input Box */
+        .input-container {
+            padding: 16px 24px;
+            background: #121318;
+            border-top: 1px solid #1E2029;
+            display: flex;
+            gap: 12px;
+        }
+        .chat-input {
+            flex: 1;
+            background: #1E2029;
+            border: 1px solid #334155;
+            padding: 14px 20px;
+            border-radius: 24px;
+            color: #FFF;
+            font-size: 15px;
+            outline: none;
+        }
+        .chat-input:focus {
+            border-color: #25D366;
+        }
+        .btn-send {
+            background: #25D366;
+            color: #000;
+            border: none;
+            padding: 0 24px;
+            border-radius: 24px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        /* Settings Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: #1E2029;
+            width: 380px;
+            padding: 24px;
+            border-radius: 16px;
+            border: 1px solid #334155;
+        }
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: #25D366;
+            font-size: 18px;
+        }
+        .setting-item {
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .setting-item label {
+            font-size: 14px;
+        }
+        .setting-item select, .setting-item input[type="range"] {
+            background: #0D0E12;
+            color: #FFF;
+            border: 1px solid #334155;
+            padding: 6px;
+            border-radius: 6px;
+        }
+        .btn-close-modal {
+            width: 100%;
+            background: #25D366;
+            color: #000;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <button class="btn-new-chat" onclick="createNewChat()">+ New Chat</button>
+        <div class="history-title">Chat History</div>
+        <div class="session-list" id="sessionList"></div>
+        <button class="btn-clear-all" onclick="clearAllHistory()">🗑️ Clear All History</button>
+    </div>
+
+    <!-- Main Chat Pane -->
+    <div class="main-chat">
+        <div class="header">
+            <h1>⚡ JARVIS AI ASSISTANT</h1>
+            <button class="btn-settings" onclick="toggleModal(true)">⚙ Settings</button>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="input-container">
+            <input type="text" id="userInput" class="chat-input" placeholder="Ask Jarvis anything..." onkeypress="handleKey(event)">
+            <button class="btn-send" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <h2>⚙ Preferences</h2>
+            <div class="setting-item">
+                <label>Voice Output (Browser TTS)</label>
+                <input type="checkbox" id="voiceToggle" checked>
+            </div>
+            <div class="setting-item">
+                <label>Speech Rate</label>
+                <input type="range" id="speechRate" min="0.8" max="1.5" step="0.1" value="1.0">
+            </div>
+            <div class="setting-item">
+                <label>AI Model</label>
+                <select id="modelSelect">
+                    <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                    <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                    <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+                </select>
+            </div>
+            <button class="btn-close-modal" onclick="toggleModal(false)">Save & Close</button>
+        </div>
+    </div>
+
+    <script>
+        let currentSessionId = null;
+        const synth = window.speechSynthesis;
+
+        async function loadSessions() {
+            const res = await fetch('/api/sessions');
+            const sessions = await res.json();
+            const listEl = document.getElementById('sessionList');
+            listEl.innerHTML = '';
+            
+            if (sessions.length === 0) {
+                createNewChat();
+                return;
+            }
+
+            sessions.reverse().forEach(s => {
+                const item = document.createElement('div');
+                item.className = `session-item ${s.id === currentSessionId ? 'active' : ''}`;
+                item.innerText = `💬 ${s.title.substring(0, 20)}...`;
+                item.onclick = () => selectSession(s);
+                listEl.appendChild(item);
+            });
+        }
+
+        async function createNewChat() {
+            synth.cancel();
+            const res = await fetch('/api/new_chat', { method: 'POST' });
+            const s = await res.json();
+            currentSessionId = s.id;
+            await loadSessions();
+            selectSession(s);
+            speak("Hello Sir, standing by for commands.");
+        }
+
+        async function clearAllHistory() {
+            synth.cancel();
+            await fetch('/api/sessions', { method: 'DELETE' });
+            createNewChat();
+        }
+
+        function selectSession(s) {
+            currentSessionId = s.id;
+            const container = document.getElementById('chatMessages');
+            container.innerHTML = '';
+            (s.messages || []).forEach(m => addBubble(m.text, m.sender, m.timestamp));
+            loadSessions();
+        }
+
+        function addBubble(text, sender, timeStr) {
+            const container = document.getElementById('chatMessages');
+            const row = document.createElement('div');
+            row.className = `message-row ${sender}`;
+
+            const now = timeStr || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            row.innerHTML = `
+                <div class="bubble">${text}</div>
+                <div class="sub-meta">
+                    <span>${now}</span>
+                    ${sender === 'bot' ? `<button class="btn-copy" onclick="navigator.clipboard.writeText('${text.replace(/'/g, "\\'")}')">📋 Copy</button>` : ''}
+                </div>
+            `;
+            container.appendChild(row);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            synth.cancel(); // Stop active voice
+            input.value = '';
+            addBubble(msg, 'user');
+
+            const model = document.getElementById('modelSelect').value;
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id: currentSessionId, message: msg, model })
+            });
+            const data = await res.json();
+            addBubble(data.reply, 'bot', data.timestamp);
+            speak(data.reply);
+            loadSessions();
+        }
+
+        function speak(text) {
+            if (!document.getElementById('voiceToggle').checked) return;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = parseFloat(document.getElementById('speechRate').value);
+            synth.speak(utterance);
+        }
+
+        function handleKey(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        function toggleModal(show) {
+            document.getElementById('settingsModal').style.display = show ? 'flex' : 'none';
+        }
+
+        window.onload = loadSessions;
+    </script>
+</body>
+</html>
