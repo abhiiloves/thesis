@@ -63,7 +63,8 @@ PREDEFINED_RESPONSES = {
     'hi': ['Hello! Sir, I am ready to assist you.', 'Hi sir, I am ready to assist you.', 'Hello Sir, I am ready to assist you.'],
     'hey': ['Hello! Sir, I am ready to assist you.', 'Hey Sir, how can I help you today?', 'Hello Sir, standing by.'],
     'greetings': ['Hello! Sir, I am ready to assist you.', 'Hi sir, I am ready to assist you.', 'Hello Sir, I am ready to assist you.'],
-    'my friends name': ['Vikas Kumar, Kushagra', 'Pradeep'],
+    'who are my friends': ['Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir.'],
+    'who is my friend': ['Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir.'],
     'your owner': ['Abhii Abhishek', 'Bhanu Pratap Singh'],
     'how are you': ['I am fine, thank you for asking'],
     'hello': ['Hello Sir, I am ready to assist you.'],
@@ -143,8 +144,12 @@ async def process_chat(req: ChatRequest):
         if "birthday" in text_lower or "friends" in text_lower or "friend" in text_lower or "my name" in text_lower:
             if "my birthday" in text_lower or "my bday" in text_lower:
                 save_user_knowledge("user_birthday", user_msg)
+                if "is" in text_lower or "on" in text_lower:
+                    reply_text = "Understood Sir, I have saved your birthday to memory."
             else:
                 save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%H%M%S')}", user_msg)
+                if "is" in text_lower or "are" in text_lower:
+                    reply_text = "Understood Sir, I have noted and saved your friends' details to memory."
 
         # Predefined checks with top preference matching
         for key in PREDEFINED_RESPONSES:
