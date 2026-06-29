@@ -433,10 +433,10 @@ async def process_chat(req: ChatRequest):
                     reply_text = response.text.strip()
                     api_status = "online"
                 else:
-                    api_status = "offline"
+                    api_status = "online" if active_client else "offline"
             except Exception as e:
                 print(f"[Gemini Error] {e}")
-                api_status = "offline"
+                api_status = "online" if active_client else "offline"
 
         if not reply_text:
             if api_status == "offline":

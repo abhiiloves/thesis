@@ -541,10 +541,10 @@ class JarvisBrain:
                     self.api_status = "online"
                     return reply_text
                 else:
-                    self.api_status = "offline"
+                    self.api_status = "online" if self.gemini_client else "offline"
             except Exception as err:
                 print(f"[Gemini API Error] {err}")
-                self.api_status = "offline"
+                self.api_status = "online" if self.gemini_client else "offline"
 
         if self.api_status == "offline":
             is_task_request = any(w in text for w in ["make", "write", "create", "generate", "draft", "banao", "likho", "tayyar"])
