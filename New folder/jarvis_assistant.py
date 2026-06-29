@@ -201,24 +201,32 @@ class JarvisBrain:
         text = raw_text.lower()
 
         # Auto-detect personal / friend fact statements (ONLY when user is TELLING, not asking)
-        is_question = "what" in text or "who" in text or "tell" in text or "when" in text
+        is_question = any(w in text for w in ["what", "who", "tell", "when", "kya", "kaun", "kon", "kab", "batao", "bato"])
         if not is_question:
             if "my birthday is" in text or "my bday is" in text or "birthday on" in text:
                 save_user_knowledge("user_birthday", raw_text)
-                resp_str = "Understood Sir, I have saved your birthday to memory."
+                resp_str = "Understood Sir, I have saved your birthday to permanent memory."
                 self.conversation_context.append({"role": "user", "content": raw_text})
                 self.conversation_context.append({"role": "assistant", "content": resp_str})
                 return resp_str
             elif "my name is" in text:
                 save_user_knowledge("user_name", raw_text)
-                resp_str = "Understood Sir, I have saved your name to memory."
+                resp_str = "Understood Sir, I have saved your name to permanent memory."
                 self.conversation_context.append({"role": "user", "content": raw_text})
                 self.conversation_context.append({"role": "assistant", "content": resp_str})
                 return resp_str
             elif "friend" in text or "friends" in text:
                 if (" is " in f" {text} " or " are " in f" {text} ") and len(text.split()) > 3:
                     save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%H%M%S')}", raw_text)
-                    resp_str = "Understood Sir, I have noted and saved your friends' details to memory."
+                    resp_str = "Understood Sir, I have noted and saved your friends' details to permanent memory."
+                    self.conversation_context.append({"role": "user", "content": raw_text})
+                    self.conversation_context.append({"role": "assistant", "content": resp_str})
+                    return resp_str
+            elif any(w in text for w in ["practical", "exam", "test", "holiday", "chutti", "event", "meeting", "interview", "presentation", "trip"]) or any(m in text for m in ["july", "august", "september", "october", "november", "december", "january", "february", "march", "april", "may", "june"]):
+                if any(k in text for k in ["my", "mera", "meri", "mere", "on", "is", "hai"]):
+                    event_id = f"event_{datetime.datetime.now().strftime('%H%M%S')}"
+                    save_user_knowledge(event_id, raw_text)
+                    resp_str = f"Understood Sir, I have noted and saved your schedule ({raw_text}) to permanent memory!"
                     self.conversation_context.append({"role": "user", "content": raw_text})
                     self.conversation_context.append({"role": "assistant", "content": resp_str})
                     return resp_str
@@ -246,6 +254,17 @@ class JarvisBrain:
             return resp_str
         elif any(w in text for w in ["who created", "who made", "owner", "malik", "kisne banaya"]):
             resp_str = "I was created by Abhii Abhishek at NGF College, Palwal Sir!"
+            self.conversation_context.append({"role": "user", "content": raw_text})
+            self.conversation_context.append({"role": "assistant", "content": resp_str})
+            return resp_str
+        elif any(w in text for w in ["schedule", "event", "events", "practical", "exam", "chutti", "holiday", "kaam", "important"]) and any(w in text for w in ["kya", "what", "konsa", "konsi", "batao", "bato", "list", "tell", "show", "agle mahine", "next month", "upcoming"]):
+            knowledge = load_user_knowledge()
+            event_items = [v for k, v in knowledge.items() if "event" in k or any(w in v.lower() for w in ["practical", "exam", "test", "holiday", "chutti", "event", "meeting"])]
+            if event_items:
+                events_formatted = "\n• " + "\n• ".join(event_items)
+                resp_str = f"Here are your saved events & schedules Sir:{events_formatted}"
+            else:
+                resp_str = "You don't have any saved events or schedules in permanent memory yet, Sir."
             self.conversation_context.append({"role": "user", "content": raw_text})
             self.conversation_context.append({"role": "assistant", "content": resp_str})
             return resp_str

@@ -151,19 +151,24 @@ async def process_chat(req: ChatRequest):
         reply_text = None
         action_url = None
 
-        # Auto-detect personal / friend fact statements (ONLY when user is TELLING, not asking)
-        is_question = "what" in text_lower or "who" in text_lower or "tell" in text_lower or "when" in text_lower
+        # Auto-detect personal / friend / event fact statements (ONLY when user is TELLING, not asking)
+        is_question = any(w in text_lower for w in ["what", "who", "tell", "when", "kya", "kaun", "kon", "kab", "batao", "bato"])
         if not is_question:
             if "my birthday is" in text_lower or "my bday is" in text_lower or "birthday on" in text_lower:
                 save_user_knowledge("user_birthday", user_msg)
-                reply_text = "Understood Sir, I have saved your birthday to memory."
+                reply_text = "Understood Sir, I have saved your birthday to permanent memory."
             elif "my name is" in text_lower:
                 save_user_knowledge("user_name", user_msg)
-                reply_text = "Understood Sir, I have saved your name to memory."
+                reply_text = "Understood Sir, I have saved your name to permanent memory."
             elif "friend" in text_lower or "friends" in text_lower:
                 if (" is " in f" {text_lower} " or " are " in f" {text_lower} ") and len(text_lower.split()) > 3:
                     save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%H%M%S')}", user_msg)
-                    reply_text = "Understood Sir, I have noted and saved your friends' details to memory."
+                    reply_text = "Understood Sir, I have noted and saved your friends' details to permanent memory."
+            elif any(w in text_lower for w in ["practical", "exam", "test", "holiday", "chutti", "event", "meeting", "interview", "presentation", "trip"]) or any(m in text_lower for m in ["july", "august", "september", "october", "november", "december", "january", "february", "march", "april", "may", "june"]):
+                if any(k in text_lower for k in ["my", "mera", "meri", "mere", "on", "is", "hai"]):
+                    event_id = f"event_{datetime.datetime.now().strftime('%H%M%S')}"
+                    save_user_knowledge(event_id, user_msg)
+                    reply_text = f"Understood Sir, I have noted and saved your schedule ({user_msg}) to permanent memory!"
 
         # Flexible Query Detection (Comprehensive Offline Intent Matcher)
         if not reply_text:
@@ -184,6 +189,16 @@ async def process_chat(req: ChatRequest):
             # 4. Creator / Owner Queries
             elif any(w in text_lower for w in ["who created", "who made", "owner", "malik", "kisne banaya"]):
                 reply_text = "I was created by Abhii Abhishek at NGF College, Palwal Sir!"
+            
+            # 5. Saved Events / Schedule Queries ("kal kya hai", "agle mahine kya hai", "my schedule", "events")
+            elif any(w in text_lower for w in ["schedule", "event", "events", "practical", "exam", "chutti", "holiday", "kaam", "important"]) and any(w in text_lower for w in ["kya", "what", "konsa", "konsi", "batao", "bato", "list", "tell", "show", "agle mahine", "next month", "upcoming"]):
+                knowledge = load_user_knowledge()
+                event_items = [v for k, v in knowledge.items() if "event" in k or any(w in v.lower() for w in ["practical", "exam", "test", "holiday", "chutti", "event", "meeting"])]
+                if event_items:
+                    events_formatted = "\n• " + "\n• ".join(event_items)
+                    reply_text = f"Here are your saved events & schedules Sir:{events_formatted}"
+                else:
+                    reply_text = "You don't have any saved events or schedules in permanent memory yet, Sir."
 
         # Instant Math Calculator Evaluator
         if not reply_text:
