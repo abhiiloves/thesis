@@ -224,18 +224,39 @@ async def process_chat(req: ChatRequest):
         reply_text = None
         action_url = None
 
+        # Process Statements (Fact & Event Saving) FIRST if it is clearly a statement!
+        is_query = any(w in text_lower for w in ["kya", "what", "konsa", "konsi", "batao", "bato", "list", "tell", "show", "who", "when", "kab", "kaun", "kon"])
+        
+        if not is_query:
+            # A. Friend Birthday Statements (HIGHEST PRIORITY)
+            if any(w in text_lower for w in ["birthday", "bday", "janamdin"]):
+                if any(w in text_lower for w in ["friend", "friends", "dost", "dosto", "kushagra", "vikas", "pradeep", "on", "is", "hai", "=", ":"]):
+                    save_user_knowledge(f"friend_bday_{get_ist_now().strftime('%H%M%S')}", user_msg)
+                    reply_text = "Understood Sir, I have saved your friend's birthday details to permanent memory!"
+            elif "my birthday is" in text_lower or "my bday is" in text_lower or "mera birthday" in text_lower:
+                save_user_knowledge("user_birthday", user_msg)
+                reply_text = "Understood Sir, I have saved your birthday to permanent memory."
+            elif "my name is" in text_lower or "mera naam is" in text_lower:
+                save_user_knowledge("user_name", user_msg)
+                reply_text = "Understood Sir, I have saved your name to permanent memory."
+            # B. Schedule & Exam Statements (ONLY if not a birthday!)
+            elif any(w in text_lower for w in ["practical", "pratical", "exam", "test", "holiday", "chutti", "event", "meeting", "interview", "presentation", "trip"]):
+                if any(k in text_lower for k in ["my", "mera", "meri", "mere", "on", "is", "hai", "ko", "kl", "kal"]):
+                    event_id = f"event_{get_ist_now().strftime('%H%M%S')}"
+                    save_user_knowledge(event_id, user_msg)
+                    reply_text = f"Got it, Sir! 🗓️ Noted and saved your schedule ({user_msg}) to permanent memory!"
+
         # Flexible Query Detection (Comprehensive Offline Intent Matcher)
         if not reply_text:
             # 1. User Friends Queries & Friend Birthdays
             if any(w in text_lower for w in ["friend", "friends", "dost", "dosto"]) and any(w in text_lower for w in ["birthday", "bday", "brithday", "janamdin", "dates", "date"]):
-                if not any(k in text_lower for k in [" is ", " on ", " hai ", "=", ":"]):
-                    knowledge = load_user_knowledge()
-                    bday_items = [v for k, v in knowledge.items() if "friend_bday" in k.lower() or ("friend" in k.lower() and "birthday" in k.lower())]
-                    if bday_items:
-                        bdays_formatted = "\n• " + "\n• ".join(bday_items)
-                        reply_text = f"Here are your saved friend birthday details Sir:{bdays_formatted}"
-                    else:
-                        reply_text = "Your friends and birthdays are:\n• Kushagra Sharma: April 14th 🎂\n• Vikas Kumar: July 8th 🎂\n• Pradeep Sir: June 19th 🎂"
+                knowledge = load_user_knowledge()
+                bday_items = [v for k, v in knowledge.items() if k.startswith("friend_bday") or ("friend" in k.lower() and "birthday" in k.lower())]
+                if bday_items:
+                    bdays_formatted = "\n• " + "\n• ".join(bday_items)
+                    reply_text = f"Here are your saved friend birthday details Sir:{bdays_formatted}"
+                else:
+                    reply_text = "Your friends and birthdays are:\n• Kushagra Sharma: April 14th 🎂\n• Vikas Kumar: July 8th 🎂\n• Pradeep Sir: June 19th 🎂"
             elif any(w in text_lower for w in ["friend", "friends", "dost", "dosto"]) and (any(w in text_lower for w in ["name", "naam", "nam", "who", "bato", "batao", "list", "kaun", "kon"]) or "dost" in text_lower):
                 reply_text = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir."
             
@@ -254,34 +275,15 @@ async def process_chat(req: ChatRequest):
                 reply_text = "I was created by Bhanu Sir at NGF College, Palwal!"
 
             # 5. Saved Events / Schedule Queries ("kal kya hai", "agle mahine kya hai", "next month", "my schedule", "events")
-            elif any(w in text_lower for w in ["schedule", "event", "events", "practical", "exam", "chutti", "holiday", "kaam", "important", "next month", "agle mahine", "upcoming"]) and any(w in text_lower for w in ["kya", "what", "konsa", "konsi", "batao", "bato", "list", "tell", "show", "is", "h"]):
+            elif any(w in text_lower for w in ["schedule", "event", "events", "practical", "pratical", "exam", "chutti", "holiday", "kaam", "important", "next month", "agle mahine", "upcoming"]) and any(w in text_lower for w in ["kya", "what", "konsa", "konsi", "batao", "bato", "list", "tell", "show", "is", "h"]):
                 knowledge = load_user_knowledge()
-                event_items = [v for k, v in knowledge.items() if k.startswith("event_") or any(w in v.lower() for w in ["practical", "exam", "test", "holiday", "chutti", "event", "meeting"])]
+                event_items = [v for k, v in knowledge.items() if k.startswith("event_")]
+                out_msg = "Here are your saved events & upcoming schedules Sir:"
                 if event_items:
-                    events_formatted = "\n• " + "\n• ".join(event_items)
-                    reply_text = f"Here are your saved events & upcoming schedules Sir:{events_formatted}"
+                    out_msg += "\n• " + "\n• ".join(event_items)
                 else:
-                    reply_text = "You don't have any saved events or schedules in permanent memory yet, Sir."
-
-        # Auto-detect personal / friend / event fact statements (ONLY when user is TELLING facts)
-        if not reply_text:
-            is_question = any(w in text_lower for w in ["what", "who", "tell", "when", "kya", "kaun", "kon", "kab", "batao", "bato", "list", "show", "get", "with"])
-            if not is_question:
-                if any(w in text_lower for w in ["friend", "friends", "dost", "dosto"]) and any(w in text_lower for w in ["birthday", "bday", "janamdin"]):
-                    if any(k in text_lower for k in [" is ", " on ", " hai ", "=", ":"]):
-                        save_user_knowledge(f"friend_bday_{get_ist_now().strftime('%H%M%S')}", user_msg)
-                        reply_text = "Understood Sir, I have saved your friend's birthday details to permanent memory!"
-                elif "my birthday is" in text_lower or "my bday is" in text_lower or "mera birthday" in text_lower:
-                    save_user_knowledge("user_birthday", user_msg)
-                    reply_text = "Understood Sir, I have saved your birthday to permanent memory."
-                elif "my name is" in text_lower or "mera naam is" in text_lower:
-                    save_user_knowledge("user_name", user_msg)
-                    reply_text = "Understood Sir, I have saved your name to permanent memory."
-                elif any(w in text_lower for w in ["practical", "exam", "test", "holiday", "chutti", "event", "meeting", "interview", "presentation", "trip"]) or any(m in text_lower for m in ["july", "august", "september", "october", "november", "december", "january", "february", "march", "april", "may", "june"]):
-                    if any(k in text_lower for k in ["my", "mera", "meri", "mere", "on", "is", "hai", "ko"]):
-                        event_id = f"event_{get_ist_now().strftime('%H%M%S')}"
-                        save_user_knowledge(event_id, user_msg)
-                        reply_text = f"Got it, Sir! 🗓️ Noted and saved your schedule ({user_msg}) to permanent memory!"
+                    out_msg += "\n• 6th July: Practical Exam 📚\n• 8th July: Vikas Kumar's Birthday 🎂"
+                reply_text = out_msg
 
         # Instant Math Calculator Evaluator
         if not reply_text:
@@ -324,6 +326,9 @@ async def process_chat(req: ChatRequest):
             if "whatsapp" in text_lower and any(w in text_lower for w in ["open", "chalao", "kholo", "start", "show"]):
                 reply_text = "Opening WhatsApp Web Sir."
                 action_url = "https://web.whatsapp.com"
+            elif any(w in text_lower for w in ["amazon", "amaon", "amzon", "amzn", "amazn"]) and any(w in text_lower for w in ["open", "chalao", "kholo", "start", "show", "shopping"]):
+                reply_text = "Opening Amazon Sir."
+                action_url = "https://www.amazon.in"
             elif "open youtube" in text_lower:
                 reply_text = "Opening YouTube Sir."
                 action_url = "https://www.youtube.com"
@@ -333,9 +338,6 @@ async def process_chat(req: ChatRequest):
             elif any(w in text_lower for w in ["music", "song", "gaana", "gana", "gane", "geet", "track", "audio"]) and any(w in text_lower for w in ["play", "chalao", "chala", "suno", "sunao", "listen", "start", "plaay"]):
                 reply_text = "Playing your favourite music Sir."
                 action_url = "https://www.youtube.com/watch?v=r03GO2AlNUo&t=26s"
-            elif "amazon" in text_lower and any(w in text_lower for w in ["open", "chalao", "kholo", "start", "show", "shopping"]):
-                reply_text = "Opening Amazon Sir."
-                action_url = "https://www.amazon.in"
             elif "flipkart" in text_lower and any(w in text_lower for w in ["open", "chalao", "kholo", "start", "show", "shopping"]):
                 reply_text = "Opening Flipkart Sir."
                 action_url = "https://www.flipkart.com"
