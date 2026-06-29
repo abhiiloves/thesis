@@ -161,7 +161,7 @@ async def process_chat(req: ChatRequest):
                 save_user_knowledge("user_name", user_msg)
                 reply_text = "Understood Sir, I have saved your name to memory."
             elif "friend" in text_lower or "friends" in text_lower:
-                if "is" in text_lower or "are" in text_lower or "name" in text_lower:
+                if (" is " in f" {text_lower} " or " are " in f" {text_lower} ") and len(text_lower.split()) > 3:
                     save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%H%M%S')}", user_msg)
                     reply_text = "Understood Sir, I have noted and saved your friends' details to memory."
 

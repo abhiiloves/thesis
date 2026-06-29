@@ -216,7 +216,7 @@ class JarvisBrain:
                 self.conversation_context.append({"role": "assistant", "content": resp_str})
                 return resp_str
             elif "friend" in text or "friends" in text:
-                if "is" in text or "are" in text or "name" in text:
+                if (" is " in f" {text} " or " are " in f" {text} ") and len(text.split()) > 3:
                     save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%H%M%S')}", raw_text)
                     resp_str = "Understood Sir, I have noted and saved your friends' details to memory."
                     self.conversation_context.append({"role": "user", "content": raw_text})
