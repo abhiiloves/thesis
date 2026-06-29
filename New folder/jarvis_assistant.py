@@ -56,7 +56,9 @@ class TextToSpeechEngine:
     def speak(self, text):
         """Enqueue text for speech."""
         if self.enabled and text:
-            self.speech_queue.put(text)
+            clean_text = re.sub(r'[*#_`•]', '', text)
+            clean_text = re.sub(r'https?://\S+', '', clean_text).strip()
+            self.speech_queue.put(clean_text)
 
     def stop(self):
         """Interrupt active speech and clear speech queue."""
@@ -200,16 +202,22 @@ class JarvisBrain:
 
         text = raw_text.lower()
 
-        # Auto-detect personal / friend fact statements (ONLY when user is TELLING, not asking)
+        # Auto-detect personal / friend / event fact statements (ONLY when user is TELLING, not asking)
         is_question = any(w in text for w in ["what", "who", "tell", "when", "kya", "kaun", "kon", "kab", "batao", "bato"])
         if not is_question:
-            if "my birthday is" in text or "my bday is" in text or "birthday on" in text:
+            if any(w in text for w in ["friend", "friends", "dost", "dosto"]) and any(w in text for w in ["birthday", "bday", "janamdin"]):
+                save_user_knowledge(f"friend_bday_{datetime.datetime.now().strftime('%H%M%S')}", raw_text)
+                resp_str = "Understood Sir, I have saved your friend's birthday details to permanent memory!"
+                self.conversation_context.append({"role": "user", "content": raw_text})
+                self.conversation_context.append({"role": "assistant", "content": resp_str})
+                return resp_str
+            elif "my birthday is" in text or "my bday is" in text or "mera birthday" in text:
                 save_user_knowledge("user_birthday", raw_text)
                 resp_str = "Understood Sir, I have saved your birthday to permanent memory."
                 self.conversation_context.append({"role": "user", "content": raw_text})
                 self.conversation_context.append({"role": "assistant", "content": resp_str})
                 return resp_str
-            elif "my name is" in text:
+            elif "my name is" in text or "mera naam is" in text:
                 save_user_knowledge("user_name", raw_text)
                 resp_str = "Understood Sir, I have saved your name to permanent memory."
                 self.conversation_context.append({"role": "user", "content": raw_text})
@@ -239,6 +247,17 @@ class JarvisBrain:
             return resp_str
         elif "who are you" in text or "tum kaun ho" in text or "tum kon ho" in text:
             resp_str = "I am Jarvis, your intelligent AI assistant created by Abhii Abhishek Sir!"
+            self.conversation_context.append({"role": "user", "content": raw_text})
+            self.conversation_context.append({"role": "assistant", "content": resp_str})
+            return resp_str
+        elif any(w in text for w in ["friend", "friends", "dost", "dosto"]) and any(w in text for w in ["birthday", "bday", "brithday", "janamdin", "dates", "date"]):
+            knowledge = load_user_knowledge()
+            bday_items = [v for k, v in knowledge.items() if "birthday" in k.lower() or "bday" in k.lower() or "birthday" in v.lower() or "bday" in v.lower() or "janamdin" in v.lower()]
+            if bday_items:
+                bdays_formatted = "\n• " + "\n• ".join(bday_items)
+                resp_str = f"Here are your saved friend birthday details Sir:{bdays_formatted}"
+            else:
+                resp_str = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir. You haven't saved specific birthday dates for them yet."
             self.conversation_context.append({"role": "user", "content": raw_text})
             self.conversation_context.append({"role": "assistant", "content": resp_str})
             return resp_str
@@ -303,7 +322,7 @@ class JarvisBrain:
             self.conversation_context.append({"role": "user", "content": raw_text})
             self.conversation_context.append({"role": "assistant", "content": resp_str})
             return resp_str
-        elif any(w in text for w in ["date", "aaj kya", "aaj konsi", "today's date", "today date"]):
+        elif any(w in text for w in ["today's date", "today date", "aaj konsi date", "aaj ki date"]) or (text.strip() in ["date", "dates", "what date"]):
             now_date = datetime.datetime.now().strftime("%A, %B %d, %Y")
             resp_str = f"Today's date is {now_date}, Sir."
             self.conversation_context.append({"role": "user", "content": raw_text})

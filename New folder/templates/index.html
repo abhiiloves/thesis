@@ -741,7 +741,9 @@
 
         function speak(text) {
             if (!document.getElementById('voiceToggle').checked) return;
-            const utterance = new SpeechSynthesisUtterance(text);
+            // Clean markdown formatting symbols (*, #, _, `, •) and URLs for natural voice output
+            let cleanText = text.replace(/[*#_`•]/g, '').replace(/https?:\/\/\S+/g, '').trim();
+            const utterance = new SpeechSynthesisUtterance(cleanText);
             utterance.rate = parseFloat(document.getElementById('speechRate').value);
             synth.speak(utterance);
         }

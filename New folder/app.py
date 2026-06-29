@@ -154,10 +154,13 @@ async def process_chat(req: ChatRequest):
         # Auto-detect personal / friend / event fact statements (ONLY when user is TELLING, not asking)
         is_question = any(w in text_lower for w in ["what", "who", "tell", "when", "kya", "kaun", "kon", "kab", "batao", "bato"])
         if not is_question:
-            if "my birthday is" in text_lower or "my bday is" in text_lower or "birthday on" in text_lower:
+            if any(w in text_lower for w in ["friend", "friends", "dost", "dosto"]) and any(w in text_lower for w in ["birthday", "bday", "janamdin"]):
+                save_user_knowledge(f"friend_bday_{datetime.datetime.now().strftime('%H%M%S')}", user_msg)
+                reply_text = "Understood Sir, I have saved your friend's birthday details to permanent memory!"
+            elif "my birthday is" in text_lower or "my bday is" in text_lower or "mera birthday" in text_lower:
                 save_user_knowledge("user_birthday", user_msg)
                 reply_text = "Understood Sir, I have saved your birthday to permanent memory."
-            elif "my name is" in text_lower:
+            elif "my name is" in text_lower or "mera naam is" in text_lower:
                 save_user_knowledge("user_name", user_msg)
                 reply_text = "Understood Sir, I have saved your name to permanent memory."
             elif "friend" in text_lower or "friends" in text_lower:
@@ -178,7 +181,15 @@ async def process_chat(req: ChatRequest):
             elif "who are you" in text_lower or "tum kaun ho" in text_lower or "tum kon ho" in text_lower:
                 reply_text = "I am Jarvis, your intelligent AI assistant created by Abhii Abhishek Sir!"
             
-            # 2. User Friends Queries
+            # 2. User Friends Queries & Friend Birthdays
+            elif any(w in text_lower for w in ["friend", "friends", "dost", "dosto"]) and any(w in text_lower for w in ["birthday", "bday", "brithday", "janamdin", "dates", "date"]):
+                knowledge = load_user_knowledge()
+                bday_items = [v for k, v in knowledge.items() if "birthday" in k.lower() or "bday" in k.lower() or "birthday" in v.lower() or "bday" in v.lower() or "janamdin" in v.lower()]
+                if bday_items:
+                    bdays_formatted = "\n• " + "\n• ".join(bday_items)
+                    reply_text = f"Here are your saved friend birthday details Sir:{bdays_formatted}"
+                else:
+                    reply_text = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir. You haven't saved specific birthday dates for them yet."
             elif any(w in text_lower for w in ["friend", "friends", "dost", "dosto"]) and any(w in text_lower for w in ["name", "naam", "who", "bato", "batao", "list", "kaun", "kon"]):
                 reply_text = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir."
             
@@ -230,7 +241,7 @@ async def process_chat(req: ChatRequest):
             elif any(w in text_lower for w in ["tomorrow", "kal kya", "kl kya", "kal konsa", "kl konsa", "kal ki date", "kl ki date"]):
                 tomorrow_date = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%A, %B %d, %Y")
                 reply_text = f"Tomorrow will be {tomorrow_date}, Sir."
-            elif any(w in text_lower for w in ["date", "aaj kya", "aaj konsi", "today's date", "today date"]):
+            elif any(w in text_lower for w in ["today's date", "today date", "aaj konsi date", "aaj ki date"]) or (text_lower.strip() in ["date", "dates", "what date"]):
                 now_date = datetime.datetime.now().strftime("%A, %B %d, %Y")
                 reply_text = f"Today's date is {now_date}, Sir."
 
