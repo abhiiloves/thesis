@@ -333,9 +333,28 @@ async def process_chat(req: ChatRequest):
             elif any(w in text_lower for w in ["music", "song", "gaana", "gana", "gane", "geet", "track", "audio"]) and any(w in text_lower for w in ["play", "chalao", "chala", "suno", "sunao", "listen", "start", "plaay"]):
                 reply_text = "Playing your favourite music Sir."
                 action_url = "https://www.youtube.com/watch?v=r03GO2AlNUo&t=26s"
-            elif "open amazon" in text_lower:
+            elif "amazon" in text_lower and any(w in text_lower for w in ["open", "chalao", "kholo", "start", "show", "shopping"]):
                 reply_text = "Opening Amazon Sir."
-                action_url = "https://www.amazon.com"
+                action_url = "https://www.amazon.in"
+            elif "flipkart" in text_lower and any(w in text_lower for w in ["open", "chalao", "kholo", "start", "show", "shopping"]):
+                reply_text = "Opening Flipkart Sir."
+                action_url = "https://www.flipkart.com"
+            elif "myntra" in text_lower and any(w in text_lower for w in ["open", "chalao", "kholo", "start", "show", "shopping"]):
+                reply_text = "Opening Myntra Sir."
+                action_url = "https://www.myntra.com"
+            elif "meesho" in text_lower and any(w in text_lower for w in ["open", "chalao", "kholo", "start", "show", "shopping"]):
+                reply_text = "Opening Meesho Sir."
+                action_url = "https://www.meesho.com"
+            elif any(w in text_lower for w in ["shopping", "khareedari", "kharidari"]) and any(w in text_lower for w in ["open", "chalao", "kholo", "start", "show", "on", "website", "site"]):
+                shop_sites = [
+                    ("Amazon", "https://www.amazon.in"),
+                    ("Flipkart", "https://www.flipkart.com"),
+                    ("Myntra", "https://www.myntra.com"),
+                    ("Meesho", "https://www.meesho.com")
+                ]
+                chosen = random.choice(shop_sites)
+                reply_text = f"Opening {chosen[0]} for your online shopping Sir!"
+                action_url = chosen[1]
             elif "github" in text_lower and any(w in text_lower for w in ["open", "dekho", "show", "kholo"]):
                 reply_text = "Opening your GitHub profile Sir: https://github.com/abhiiloves"
                 action_url = "https://github.com/abhiiloves"

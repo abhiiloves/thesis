@@ -435,9 +435,28 @@ class JarvisBrain:
         if any(w in text for w in ["music", "song", "gaana", "gana", "gane", "geet", "track", "audio"]) and any(w in text for w in ["play", "chalao", "chala", "suno", "sunao", "listen", "start", "plaay"]):
             webbrowser.open("https://www.youtube.com/watch?v=r03GO2AlNUo&t=26s")
             return "Playing your favourite music Sir."
-        if "open amazon" in text:
-            webbrowser.open("https://www.amazon.com")
+        if "amazon" in text and any(w in text for w in ["open", "chalao", "kholo", "start", "show", "shopping"]):
+            webbrowser.open("https://www.amazon.in")
             return "Opening Amazon Sir."
+        if "flipkart" in text and any(w in text for w in ["open", "chalao", "kholo", "start", "show", "shopping"]):
+            webbrowser.open("https://www.flipkart.com")
+            return "Opening Flipkart Sir."
+        if "myntra" in text and any(w in text for w in ["open", "chalao", "kholo", "start", "show", "shopping"]):
+            webbrowser.open("https://www.myntra.com")
+            return "Opening Myntra Sir."
+        if "meesho" in text and any(w in text for w in ["open", "chalao", "kholo", "start", "show", "shopping"]):
+            webbrowser.open("https://www.meesho.com")
+            return "Opening Meesho Sir."
+        if any(w in text for w in ["shopping", "khareedari", "kharidari"]) and any(w in text for w in ["open", "chalao", "kholo", "start", "show", "on", "website", "site"]):
+            shop_sites = [
+                ("Amazon", "https://www.amazon.in"),
+                ("Flipkart", "https://www.flipkart.com"),
+                ("Myntra", "https://www.myntra.com"),
+                ("Meesho", "https://www.meesho.com")
+            ]
+            chosen = random.choice(shop_sites)
+            webbrowser.open(chosen[1])
+            return f"Opening {chosen[0]} for your online shopping Sir!"
         if "github" in text and any(w in text for w in ["open", "dekho", "show", "kholo"]):
             webbrowser.open("https://github.com/abhiiloves")
             return "Opening your GitHub profile Sir."
