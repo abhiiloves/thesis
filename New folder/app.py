@@ -207,12 +207,15 @@ async def process_chat(req: ChatRequest):
                     reply_text = random.choice(PREDEFINED_RESPONSES[key])
                     break
 
-        # Time & Date Queries
+        # Time & Date Queries (Today, Tomorrow, Time in English & Hinglish)
         if not reply_text:
-            if "time" in text_lower or "current time" in text_lower or "what time" in text_lower:
+            if any(w in text_lower for w in ["time", "samay", "waqt", "kitne baje"]):
                 now_time = datetime.datetime.now().strftime("%I:%M %p")
                 reply_text = f"The current time is {now_time}, Sir."
-            elif "date" in text_lower or "today's date" in text_lower or "what date" in text_lower:
+            elif any(w in text_lower for w in ["tomorrow", "kal kya", "kl kya", "kal konsa", "kl konsa", "kal ki date", "kl ki date"]):
+                tomorrow_date = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%A, %B %d, %Y")
+                reply_text = f"Tomorrow will be {tomorrow_date}, Sir."
+            elif any(w in text_lower for w in ["date", "aaj kya", "aaj konsi", "today's date", "today date"]):
                 now_date = datetime.datetime.now().strftime("%A, %B %d, %Y")
                 reply_text = f"Today's date is {now_date}, Sir."
 
@@ -258,8 +261,10 @@ async def process_chat(req: ChatRequest):
                 if global_memories:
                     memory_str = "Permanent User Knowledge/Facts: " + json.dumps(global_memories, ensure_ascii=False) + ". Use this knowledge when answering questions about the user."
 
+                now_str = datetime.datetime.now().strftime("%A, %B %d, %Y (%I:%M %p)")
                 prompt_parts = [
                     "You are Jarvis, a sleek, intelligent AI assistant created by Abhii Abhishek. "
+                    f"Current Live System Date & Time: {now_str}. Always use this exact date context for answering questions about today, tomorrow, dates, days, and schedules. "
                     "Be direct, highly helpful, and provide complete working code, code blocks, or full solutions whenever requested without lengthy introductory talk. "
                     + memory_str
                 ]

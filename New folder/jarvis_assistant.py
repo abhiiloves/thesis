@@ -271,14 +271,20 @@ class JarvisBrain:
             self.conversation_context.append({"role": "assistant", "content": predefined})
             return predefined
 
-        # Time & Date Queries
-        if "time" in text or "current time" in text or "what time" in text:
+        # Time & Date Queries (Today, Tomorrow, Time in English & Hinglish)
+        if any(w in text for w in ["time", "samay", "waqt", "kitne baje"]):
             now_time = datetime.datetime.now().strftime("%I:%M %p")
             resp_str = f"The current time is {now_time}, Sir."
             self.conversation_context.append({"role": "user", "content": raw_text})
             self.conversation_context.append({"role": "assistant", "content": resp_str})
             return resp_str
-        if "date" in text or "today's date" in text or "what date" in text:
+        elif any(w in text for w in ["tomorrow", "kal kya", "kl kya", "kal konsa", "kl konsa", "kal ki date", "kl ki date"]):
+            tomorrow_date = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%A, %B %d, %Y")
+            resp_str = f"Tomorrow will be {tomorrow_date}, Sir."
+            self.conversation_context.append({"role": "user", "content": raw_text})
+            self.conversation_context.append({"role": "assistant", "content": resp_str})
+            return resp_str
+        elif any(w in text for w in ["date", "aaj kya", "aaj konsi", "today's date", "today date"]):
             now_date = datetime.datetime.now().strftime("%A, %B %d, %Y")
             resp_str = f"Today's date is {now_date}, Sir."
             self.conversation_context.append({"role": "user", "content": raw_text})
