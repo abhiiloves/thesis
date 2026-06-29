@@ -250,6 +250,20 @@ class JarvisBrain:
             self.conversation_context.append({"role": "assistant", "content": resp_str})
             return resp_str
 
+        # Instant Math Calculator Evaluator
+        if re.match(r'^\s*[\d\s+\-*/().]+\s*$', text) and any(op in text for op in ['+', '-', '*', '/']):
+            try:
+                clean_expr = re.sub(r'[^0-9+\-*/().\s]', '', text)
+                calc_res = eval(clean_expr, {"__builtins__": None}, {})
+                if isinstance(calc_res, (int, float)):
+                    formatted_res = f"{int(calc_res)}" if isinstance(calc_res, float) and calc_res.is_integer() else f"{calc_res}"
+                    resp_str = f"{raw_text} = {formatted_res}"
+                    self.conversation_context.append({"role": "user", "content": raw_text})
+                    self.conversation_context.append({"role": "assistant", "content": resp_str})
+                    return resp_str
+            except Exception:
+                pass
+
         # Check predefined responses first
         predefined = self.get_predefined_response(text)
         if predefined:

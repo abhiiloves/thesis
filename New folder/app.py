@@ -185,6 +185,18 @@ async def process_chat(req: ChatRequest):
             elif any(w in text_lower for w in ["who created", "who made", "owner", "malik", "kisne banaya"]):
                 reply_text = "I was created by Abhii Abhishek at NGF College, Palwal Sir!"
 
+        # Instant Math Calculator Evaluator
+        if not reply_text:
+            if re.match(r'^\s*[\d\s+\-*/().]+\s*$', text_lower) and any(op in text_lower for op in ['+', '-', '*', '/']):
+                try:
+                    clean_expr = re.sub(r'[^0-9+\-*/().\s]', '', text_lower)
+                    calc_res = eval(clean_expr, {"__builtins__": None}, {})
+                    if isinstance(calc_res, (int, float)):
+                        formatted_res = f"{int(calc_res)}" if isinstance(calc_res, float) and calc_res.is_integer() else f"{calc_res}"
+                        reply_text = f"{user_msg} = {formatted_res}"
+                except Exception:
+                    pass
+
         # Predefined checks with top preference matching
         if not reply_text:
             for key in PREDEFINED_RESPONSES:
