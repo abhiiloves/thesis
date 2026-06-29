@@ -298,9 +298,9 @@ class JarvisBrain:
         if "open google" in text:
             webbrowser.open("https://www.google.com")
             return "Opening Google Sir."
-        if "play music" in text or "play song" in text or "favourite song" in text:
+        if any(w in text for w in ["music", "song", "gaana", "gana", "gane", "geet", "track", "audio"]) and any(w in text for w in ["play", "chalao", "chala", "suno", "sunao", "listen", "start", "plaay"]):
             webbrowser.open("https://www.youtube.com/watch?v=r03GO2AlNUo&t=26s")
-            return "Playing your favourite song Sir."
+            return "Playing your favourite music Sir."
         if "open amazon" in text:
             webbrowser.open("https://www.amazon.com")
             return "Opening Amazon Sir."

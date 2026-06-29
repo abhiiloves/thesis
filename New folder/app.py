@@ -227,8 +227,8 @@ async def process_chat(req: ChatRequest):
             elif "open google" in text_lower:
                 reply_text = "Opening Google Sir."
                 action_url = "https://www.google.com"
-            elif "play music" in text_lower or "play song" in text_lower or "favourite song" in text_lower or "favorite song" in text_lower:
-                reply_text = "Playing your favourite song Sir."
+            elif any(w in text_lower for w in ["music", "song", "gaana", "gana", "gane", "geet", "track", "audio"]) and any(w in text_lower for w in ["play", "chalao", "chala", "suno", "sunao", "listen", "start", "plaay"]):
+                reply_text = "Playing your favourite music Sir."
                 action_url = "https://www.youtube.com/watch?v=r03GO2AlNUo&t=26s"
             elif "open amazon" in text_lower:
                 reply_text = "Opening Amazon Sir."
