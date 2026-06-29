@@ -287,7 +287,7 @@ class JarvisBrain:
                 self.conversation_context.append({"role": "user", "content": raw_text})
                 self.conversation_context.append({"role": "assistant", "content": resp_str})
                 return resp_str
-        elif any(w in text for w in ["friend", "friends", "dost", "dosto"]) and any(w in text for w in ["name", "naam", "who", "bato", "batao", "list", "kaun", "kon"]):
+        elif any(w in text for w in ["friend", "friends", "dost", "dosto"]) and (any(w in text for w in ["name", "naam", "nam", "who", "bato", "batao", "list", "kaun", "kon"]) or "dost" in text):
             resp_str = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir."
             self.conversation_context.append({"role": "user", "content": raw_text})
             self.conversation_context.append({"role": "assistant", "content": resp_str})

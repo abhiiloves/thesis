@@ -236,7 +236,7 @@ async def process_chat(req: ChatRequest):
                         reply_text = f"Here are your saved friend birthday details Sir:{bdays_formatted}"
                     else:
                         reply_text = "Your friends and birthdays are:\n• Kushagra Sharma: April 14th 🎂\n• Vikas Kumar: July 8th 🎂\n• Pradeep Sir: June 19th 🎂"
-            elif any(w in text_lower for w in ["friend", "friends", "dost", "dosto"]) and any(w in text_lower for w in ["name", "naam", "who", "bato", "batao", "list", "kaun", "kon"]):
+            elif any(w in text_lower for w in ["friend", "friends", "dost", "dosto"]) and (any(w in text_lower for w in ["name", "naam", "nam", "who", "bato", "batao", "list", "kaun", "kon"]) or "dost" in text_lower):
                 reply_text = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir."
             
             # 2. Assistant Name Queries
