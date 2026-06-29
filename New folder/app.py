@@ -465,13 +465,25 @@ async def process_chat(req: ChatRequest):
                         wiki_summary = None
                         try:
                             wiki_summary = wikipedia.summary(search_q, sentences=2, auto_suggest=True)
+                        except wikipedia.exceptions.DisambiguationError as de:
+                            try:
+                                wiki_summary = wikipedia.summary(de.options[0], sentences=2, auto_suggest=False)
+                            except Exception:
+                                pass
                         except Exception:
-                            search_results = wikipedia.search(search_q)
-                            if search_results:
-                                try:
-                                    wiki_summary = wikipedia.summary(search_results[0], sentences=2, auto_suggest=False)
-                                except Exception:
-                                    pass
+                            pass
+
+                        if not wiki_summary:
+                            try:
+                                search_results = wikipedia.search(search_q)
+                                if search_results:
+                                    try:
+                                        wiki_summary = wikipedia.summary(search_results[0], sentences=2, auto_suggest=False)
+                                    except wikipedia.exceptions.DisambiguationError as de2:
+                                        wiki_summary = wikipedia.summary(de2.options[0], sentences=2, auto_suggest=False)
+                            except Exception:
+                                pass
+
                         if wiki_summary and len(wiki_summary.strip()) > 20:
                             reply_text = f"According to Wikipedia:\n{wiki_summary}"
                         else:
