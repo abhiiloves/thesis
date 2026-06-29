@@ -558,15 +558,22 @@ class JarvisBrain:
                 return resp_str
             else:
                 try:
-                    clean_q = re.sub(r'\b(what|who|where|when|is|are|tell|me|about|the|a|an|in|of|ka|ki|ke|ko|batao|bato|kon|hai|kya|sir|plz|please)\b', '', raw_text, flags=re.IGNORECASE).strip()
-                    search_q = clean_q if len(clean_q) >= 2 else raw_text
-                    search_results = wikipedia.search(search_q)
-                    target_topic = search_results[0] if search_results else search_q
+                    clean_q = re.sub(r'\b(what|who|where|when|is|are|tell|me|about|the|a|an|in|of|ka|ki|ke|ko|batao|bato|kon|hai|kya|sir|plz|please|barme|bare|baare)\b', '', raw_text, flags=re.IGNORECASE).strip()
+                    search_q = clean_q if len(clean_q) >= 3 else raw_text
+                    wiki_summary = None
                     try:
-                        wiki_summary = wikipedia.summary(target_topic, sentences=2, auto_suggest=False)
-                    except wikipedia.exceptions.DisambiguationError as de:
-                        wiki_summary = wikipedia.summary(de.options[0], sentences=2, auto_suggest=False)
-                    resp_str = f"According to Wikipedia: {wiki_summary}"
+                        wiki_summary = wikipedia.summary(search_q, sentences=2, auto_suggest=True)
+                    except Exception:
+                        search_results = wikipedia.search(search_q)
+                        if search_results:
+                            try:
+                                wiki_summary = wikipedia.summary(search_results[0], sentences=2, auto_suggest=False)
+                            except Exception:
+                                pass
+                    if wiki_summary and len(wiki_summary.strip()) > 20:
+                        resp_str = f"According to Wikipedia:\n{wiki_summary}"
+                    else:
+                        resp_str = f"Sir, Gemini AI connectivity is currently offline or rate-limited. Please add an active Gemini API key in Settings to fetch full live answers!"
                     self.conversation_context.append({"role": "user", "content": raw_text})
                     self.conversation_context.append({"role": "assistant", "content": resp_str})
                     return resp_str

@@ -448,15 +448,22 @@ async def process_chat(req: ChatRequest):
                         reply_text = "I would be glad to generate custom content for you Sir! However, custom text generation requires an active Gemini AI connection. Please add a new API key in Settings so I can generate custom content for you!"
                 else:
                     try:
-                        clean_q = re.sub(r'\b(what|who|where|when|is|are|tell|me|about|the|a|an|in|of|ka|ki|ke|ko|batao|bato|kon|hai|kya|sir|plz|please)\b', '', user_msg, flags=re.IGNORECASE).strip()
-                        search_q = clean_q if len(clean_q) >= 2 else user_msg
-                        search_results = wikipedia.search(search_q)
-                        target_topic = search_results[0] if search_results else search_q
+                        clean_q = re.sub(r'\b(what|who|where|when|is|are|tell|me|about|the|a|an|in|of|ka|ki|ke|ko|batao|bato|kon|hai|kya|sir|plz|please|barme|bare|baare)\b', '', user_msg, flags=re.IGNORECASE).strip()
+                        search_q = clean_q if len(clean_q) >= 3 else user_msg
+                        wiki_summary = None
                         try:
-                            wiki_summary = wikipedia.summary(target_topic, sentences=2, auto_suggest=False)
-                        except wikipedia.exceptions.DisambiguationError as de:
-                            wiki_summary = wikipedia.summary(de.options[0], sentences=2, auto_suggest=False)
-                        reply_text = f"According to Wikipedia: {wiki_summary}"
+                            wiki_summary = wikipedia.summary(search_q, sentences=2, auto_suggest=True)
+                        except Exception:
+                            search_results = wikipedia.search(search_q)
+                            if search_results:
+                                try:
+                                    wiki_summary = wikipedia.summary(search_results[0], sentences=2, auto_suggest=False)
+                                except Exception:
+                                    pass
+                        if wiki_summary and len(wiki_summary.strip()) > 20:
+                            reply_text = f"According to Wikipedia:\n{wiki_summary}"
+                        else:
+                            reply_text = f"Sir, Gemini AI connectivity is currently offline or rate-limited. Please add an active Gemini API key in Settings to fetch full live answers!"
                     except Exception as w_err:
                         print(f"[Offline Wiki Search Fail] {w_err}")
                         reply_text = "Sorry Sir, Gemini AI limit reached or offline. Operating in predefined command mode."
