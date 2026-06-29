@@ -321,7 +321,16 @@ async def process_chat(req: ChatRequest):
 
         # Actionable Tasks
         if not reply_text:
-            if "open youtube" in text_lower:
+            if "whatsapp" in text_lower and any(w in text_lower for w in ["open", "chalao", "kholo", "start", "show"]):
+                reply_text = "Opening WhatsApp Web Sir."
+                action_url = "https://web.whatsapp.com"
+            elif "notepad" in text_lower and any(w in text_lower for w in ["open", "chalao", "kholo", "start", "show"]):
+                reply_text = "Opening Online Notepad Workspace Sir."
+                action_url = "https://www.rapidtables.com/tools/notepad.html"
+            elif any(w in text_lower for w in ["calculator", "calc"]) and any(w in text_lower for w in ["open", "chalao", "kholo", "start", "show"]):
+                reply_text = "Opening Online Scientific Calculator Sir."
+                action_url = "https://www.google.com/search?q=calculator"
+            elif "open youtube" in text_lower:
                 reply_text = "Opening YouTube Sir."
                 action_url = "https://www.youtube.com"
             elif "open google" in text_lower:

@@ -418,6 +418,43 @@ class JarvisBrain:
             return resp_str
 
         # Web & system triggers
+        if "whatsapp" in text and any(w in text for w in ["open", "chalao", "kholo", "start", "show"]):
+            webbrowser.open("https://web.whatsapp.com")
+            try:
+                os.system("start whatsapp:")
+            except Exception:
+                pass
+            return "Opening WhatsApp Sir."
+        if "notepad" in text and any(w in text for w in ["open", "chalao", "kholo", "start", "show"]):
+            try:
+                os.system("start notepad.exe")
+            except Exception:
+                pass
+            return "Opening Notepad Sir."
+        if any(w in text for w in ["calculator", "calc"]) and any(w in text for w in ["open", "chalao", "kholo", "start", "show"]):
+            try:
+                os.system("start calc.exe")
+            except Exception:
+                pass
+            return "Opening Calculator Sir."
+        if "paint" in text and any(w in text for w in ["open", "chalao", "kholo", "start", "show"]):
+            try:
+                os.system("start mspaint.exe")
+            except Exception:
+                pass
+            return "Opening MS Paint Sir."
+        if any(w in text for w in ["cmd", "command prompt", "terminal"]) and any(w in text for w in ["open", "chalao", "kholo", "start", "show"]):
+            try:
+                os.system("start cmd.exe")
+            except Exception:
+                pass
+            return "Opening Command Prompt Sir."
+        if any(w in text for w in ["explorer", "file explorer", "my computer", "this pc"]) and any(w in text for w in ["open", "chalao", "kholo", "start", "show"]):
+            try:
+                os.system("start explorer.exe")
+            except Exception:
+                pass
+            return "Opening File Explorer Sir."
         if "open youtube" in text:
             webbrowser.open("https://www.youtube.com")
             return "Opening YouTube Sir."
