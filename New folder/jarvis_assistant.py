@@ -351,9 +351,11 @@ class JarvisBrain:
                 if global_memories:
                     memory_str = "Permanent User Knowledge/Facts: " + json.dumps(global_memories, ensure_ascii=False) + ". Use this knowledge when answering questions about the user."
 
+                now_str = datetime.datetime.now().strftime("%A, %B %d, %Y (%I:%M %p)")
                 prompt_parts = [
                     "You are Jarvis, a sleek, intelligent AI assistant created by Abhii Abhishek. "
-                    "Be direct, highly helpful, and provide complete working code, code blocks, or full solutions whenever requested without lengthy introductory talk. "
+                    f"Current Live System Date & Time: {now_str}. "
+                    "STYLE RULES: Keep responses crisp, stylish, concise, and engaging (in Hinglish/English). Never write long walls of text, boring essays, or textbook lectures. For general advice, give max 3-4 short actionable bullet points with emojis. For coding, give direct code blocks without fluff. "
                     + memory_str
                 ]
                 recent_turns = self.conversation_context[-10:]
@@ -372,7 +374,7 @@ class JarvisBrain:
                         resp = self.gemini_client.models.generate_content(
                             model=m_name,
                             contents=full_prompt,
-                            config=types.GenerateContentConfig(max_output_tokens=700, temperature=0.7)
+                            config=types.GenerateContentConfig(max_output_tokens=350, temperature=0.7)
                         )
                         if resp and hasattr(resp, 'text') and resp.text:
                             response = resp

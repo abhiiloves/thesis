@@ -279,8 +279,8 @@ async def process_chat(req: ChatRequest):
                 now_str = datetime.datetime.now().strftime("%A, %B %d, %Y (%I:%M %p)")
                 prompt_parts = [
                     "You are Jarvis, a sleek, intelligent AI assistant created by Abhii Abhishek. "
-                    f"Current Live System Date & Time: {now_str}. Always use this exact date context for answering questions about today, tomorrow, dates, days, and schedules. "
-                    "Be direct, highly helpful, and provide complete working code, code blocks, or full solutions whenever requested without lengthy introductory talk. "
+                    f"Current Live System Date & Time: {now_str}. "
+                    "STYLE RULES: Keep responses crisp, stylish, concise, and engaging (in Hinglish/English). Never write long walls of text, boring essays, or textbook lectures. For general advice, give max 3-4 short actionable bullet points with emojis. For coding, give direct code blocks without fluff. "
                     + memory_str
                 ]
                 recent_turns = session["context"][-10:]
@@ -296,7 +296,7 @@ async def process_chat(req: ChatRequest):
                         resp = active_client.models.generate_content(
                             model=m_name,
                             contents="\n".join(prompt_parts),
-                            config=types.GenerateContentConfig(max_output_tokens=700, temperature=0.7)
+                            config=types.GenerateContentConfig(max_output_tokens=350, temperature=0.7)
                         )
                         if resp and hasattr(resp, 'text') and resp.text:
                             response = resp
