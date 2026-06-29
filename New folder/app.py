@@ -260,7 +260,7 @@ async def process_chat(req: ChatRequest):
 
                 prompt_parts = [
                     "You are Jarvis, a sleek, intelligent AI assistant created by Abhii Abhishek. "
-                    "Respond concisely and helpfully in 1-3 sentences without markdown headers or bullet points. "
+                    "Be direct, highly helpful, and provide complete working code, code blocks, or full solutions whenever requested without lengthy introductory talk. "
                     + memory_str
                 ]
                 recent_turns = session["context"][-10:]
@@ -276,7 +276,7 @@ async def process_chat(req: ChatRequest):
                         resp = active_client.models.generate_content(
                             model=m_name,
                             contents="\n".join(prompt_parts),
-                            config=types.GenerateContentConfig(max_output_tokens=150, temperature=0.7)
+                            config=types.GenerateContentConfig(max_output_tokens=700, temperature=0.7)
                         )
                         if resp and hasattr(resp, 'text') and resp.text:
                             response = resp
