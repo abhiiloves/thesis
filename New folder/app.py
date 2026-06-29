@@ -270,7 +270,7 @@ async def process_chat(req: ChatRequest):
                 prompt_parts.append(f"User: {user_msg}\nJarvis:")
 
                 response = None
-                models_to_try = [req.model, "gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash"]
+                models_to_try = [req.model, "gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite"]
                 for m_name in models_to_try:
                     try:
                         resp = active_client.models.generate_content(

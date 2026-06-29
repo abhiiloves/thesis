@@ -341,7 +341,7 @@ class JarvisBrain:
                 full_prompt = "\n".join(prompt_parts)
 
                 response = None
-                models_to_try = [self.selected_model, "gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash"]
+                models_to_try = [self.selected_model, "gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite"]
                 for m_name in models_to_try:
                     try:
                         resp = self.gemini_client.models.generate_content(
