@@ -13,6 +13,11 @@ import customtkinter as ctk
 from google import genai
 from google.genai import types
 
+IST_TZ = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+
+def get_ist_now():
+    return datetime.datetime.now(IST_TZ)
+
 # ==========================================
 # THREAD-SAFE TTS ENGINE WITH INTERRUPT
 # ==========================================
@@ -220,7 +225,7 @@ class JarvisBrain:
         is_question = any(w in text for w in ["what", "who", "tell", "when", "kya", "kaun", "kon", "kab", "batao", "bato"])
         if not is_question:
             if any(w in text for w in ["friend", "friends", "dost", "dosto"]) and any(w in text for w in ["birthday", "bday", "janamdin"]):
-                save_user_knowledge(f"friend_bday_{datetime.datetime.now().strftime('%H%M%S')}", raw_text)
+                save_user_knowledge(f"friend_bday_{get_ist_now().strftime('%H%M%S')}", raw_text)
                 resp_str = "Understood Sir, I have saved your friend's birthday details to permanent memory!"
                 self.conversation_context.append({"role": "user", "content": raw_text})
                 self.conversation_context.append({"role": "assistant", "content": resp_str})
@@ -239,14 +244,14 @@ class JarvisBrain:
                 return resp_str
             elif "friend" in text or "friends" in text:
                 if (" is " in f" {text} " or " are " in f" {text} ") and len(text.split()) > 3:
-                    save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%H%M%S')}", raw_text)
+                    save_user_knowledge(f"fact_{get_ist_now().strftime('%H%M%S')}", raw_text)
                     resp_str = "Understood Sir, I have noted and saved your friends' details to permanent memory."
                     self.conversation_context.append({"role": "user", "content": raw_text})
                     self.conversation_context.append({"role": "assistant", "content": resp_str})
                     return resp_str
             elif any(w in text for w in ["practical", "exam", "test", "holiday", "chutti", "event", "meeting", "interview", "presentation", "trip"]) or any(m in text for m in ["july", "august", "september", "october", "november", "december", "january", "february", "march", "april", "may", "june"]):
                 if any(k in text for k in ["my", "mera", "meri", "mere", "on", "is", "hai"]):
-                    event_id = f"event_{datetime.datetime.now().strftime('%H%M%S')}"
+                    event_id = f"event_{get_ist_now().strftime('%H%M%S')}"
                     save_user_knowledge(event_id, raw_text)
                     resp_str = f"Understood Sir, I have noted and saved your schedule ({raw_text}) to permanent memory!"
                     self.conversation_context.append({"role": "user", "content": raw_text})
@@ -325,19 +330,19 @@ class JarvisBrain:
 
         # Time & Date Queries (Today, Tomorrow, Time in English & Hinglish)
         if any(w in text for w in ["time", "samay", "waqt", "kitne baje"]):
-            now_time = datetime.datetime.now().strftime("%I:%M %p")
+            now_time = get_ist_now().strftime("%I:%M %p")
             resp_str = f"The current time is {now_time}, Sir."
             self.conversation_context.append({"role": "user", "content": raw_text})
             self.conversation_context.append({"role": "assistant", "content": resp_str})
             return resp_str
         elif any(w in text for w in ["tomorrow", "kal kya", "kl kya", "kal konsa", "kl konsa", "kal ki date", "kl ki date"]):
-            tomorrow_date = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%A, %B %d, %Y")
+            tomorrow_date = (get_ist_now() + datetime.timedelta(days=1)).strftime("%A, %B %d, %Y")
             resp_str = f"Tomorrow will be {tomorrow_date}, Sir."
             self.conversation_context.append({"role": "user", "content": raw_text})
             self.conversation_context.append({"role": "assistant", "content": resp_str})
             return resp_str
         elif any(w in text for w in ["today's date", "today date", "aaj konsi date", "aaj ki date"]) or (text.strip() in ["date", "dates", "what date"]):
-            now_date = datetime.datetime.now().strftime("%A, %B %d, %Y")
+            now_date = get_ist_now().strftime("%A, %B %d, %Y")
             resp_str = f"Today's date is {now_date}, Sir."
             self.conversation_context.append({"role": "user", "content": raw_text})
             self.conversation_context.append({"role": "assistant", "content": resp_str})
@@ -393,7 +398,7 @@ class JarvisBrain:
                 if global_memories:
                     memory_str = "Permanent User Knowledge/Facts: " + json.dumps(global_memories, ensure_ascii=False) + ". Use this knowledge when answering questions about the user."
 
-                now_str = datetime.datetime.now().strftime("%A, %B %d, %Y (%I:%M %p)")
+                now_str = get_ist_now().strftime("%A, %B %d, %Y (%I:%M %p)")
                 prompt_parts = [
                     "You are Jarvis, a sleek, intelligent AI assistant created by Abhii Abhishek. "
                     f"Current Live System Date & Time: {now_str}. "

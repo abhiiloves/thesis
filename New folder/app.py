@@ -29,6 +29,12 @@ app.add_middleware(
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
+# India Standard Time (IST) Zone Setup
+IST_TZ = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+
+def get_ist_now():
+    return datetime.datetime.now(IST_TZ)
+
 # In-memory session store & Global knowledge file
 sessions_db = {}
 KNOWLEDGE_FILE = os.path.join(BASE_DIR, "user_knowledge.json")
@@ -118,7 +124,7 @@ async def get_sessions():
 
 @app.post("/api/new_chat")
 async def new_chat():
-    sid = datetime.datetime.now().strftime("chat_%Y%m%d_%H%M%S")
+    sid = get_ist_now().strftime("chat_%Y%m%d_%H%M%S")
     session_data = {
         "id": sid,
         "title": "New Chat",
@@ -152,7 +158,7 @@ async def process_chat(req: ChatRequest):
 
     session = sessions_db[sid]
     user_msg = req.message.strip()
-    timestamp = datetime.datetime.now().strftime("%H:%M")
+    timestamp = get_ist_now().strftime("%I:%M %p")
 
     try:
         # Add user message to history
@@ -169,7 +175,7 @@ async def process_chat(req: ChatRequest):
         is_question = any(w in text_lower for w in ["what", "who", "tell", "when", "kya", "kaun", "kon", "kab", "batao", "bato"])
         if not is_question:
             if any(w in text_lower for w in ["friend", "friends", "dost", "dosto"]) and any(w in text_lower for w in ["birthday", "bday", "janamdin"]):
-                save_user_knowledge(f"friend_bday_{datetime.datetime.now().strftime('%H%M%S')}", user_msg)
+                save_user_knowledge(f"friend_bday_{get_ist_now().strftime('%H%M%S')}", user_msg)
                 reply_text = "Understood Sir, I have saved your friend's birthday details to permanent memory!"
             elif "my birthday is" in text_lower or "my bday is" in text_lower or "mera birthday" in text_lower:
                 save_user_knowledge("user_birthday", user_msg)
@@ -179,11 +185,11 @@ async def process_chat(req: ChatRequest):
                 reply_text = "Understood Sir, I have saved your name to permanent memory."
             elif "friend" in text_lower or "friends" in text_lower:
                 if (" is " in f" {text_lower} " or " are " in f" {text_lower} ") and len(text_lower.split()) > 3:
-                    save_user_knowledge(f"fact_{datetime.datetime.now().strftime('%H%M%S')}", user_msg)
+                    save_user_knowledge(f"fact_{get_ist_now().strftime('%H%M%S')}", user_msg)
                     reply_text = "Understood Sir, I have noted and saved your friends' details to permanent memory."
             elif any(w in text_lower for w in ["practical", "exam", "test", "holiday", "chutti", "event", "meeting", "interview", "presentation", "trip"]) or any(m in text_lower for m in ["july", "august", "september", "october", "november", "december", "january", "february", "march", "april", "may", "june"]):
                 if any(k in text_lower for k in ["my", "mera", "meri", "mere", "on", "is", "hai"]):
-                    event_id = f"event_{datetime.datetime.now().strftime('%H%M%S')}"
+                    event_id = f"event_{get_ist_now().strftime('%H%M%S')}"
                     save_user_knowledge(event_id, user_msg)
                     reply_text = f"Understood Sir, I have noted and saved your schedule ({user_msg}) to permanent memory!"
 
@@ -250,13 +256,13 @@ async def process_chat(req: ChatRequest):
         # Time & Date Queries (Today, Tomorrow, Time in English & Hinglish)
         if not reply_text:
             if any(w in text_lower for w in ["time", "samay", "waqt", "kitne baje"]):
-                now_time = datetime.datetime.now().strftime("%I:%M %p")
+                now_time = get_ist_now().strftime("%I:%M %p")
                 reply_text = f"The current time is {now_time}, Sir."
             elif any(w in text_lower for w in ["tomorrow", "kal kya", "kl kya", "kal konsa", "kl konsa", "kal ki date", "kl ki date"]):
-                tomorrow_date = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%A, %B %d, %Y")
+                tomorrow_date = (get_ist_now() + datetime.timedelta(days=1)).strftime("%A, %B %d, %Y")
                 reply_text = f"Tomorrow will be {tomorrow_date}, Sir."
             elif any(w in text_lower for w in ["today's date", "today date", "aaj konsi date", "aaj ki date"]) or (text_lower.strip() in ["date", "dates", "what date"]):
-                now_date = datetime.datetime.now().strftime("%A, %B %d, %Y")
+                now_date = get_ist_now().strftime("%A, %B %d, %Y")
                 reply_text = f"Today's date is {now_date}, Sir."
 
         # Actionable Tasks
@@ -310,7 +316,7 @@ async def process_chat(req: ChatRequest):
                 if global_memories:
                     memory_str = "Permanent User Knowledge/Facts: " + json.dumps(global_memories, ensure_ascii=False) + ". Use this knowledge when answering questions about the user."
 
-                now_str = datetime.datetime.now().strftime("%A, %B %d, %Y (%I:%M %p)")
+                now_str = get_ist_now().strftime("%A, %B %d, %Y (%I:%M %p)")
                 prompt_parts = [
                     "You are Jarvis, a sleek, intelligent AI assistant created by Abhii Abhishek. "
                     f"Current Live System Date & Time: {now_str}. "
