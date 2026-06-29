@@ -558,8 +558,20 @@ class JarvisBrain:
                 return resp_str
             else:
                 try:
-                    clean_q = re.sub(r'\b(what|who|where|when|is|are|tell|me|about|the|a|an|in|of|ka|ki|ke|ko|batao|bato|kon|hai|kya|sir|plz|please|barme|bare|baare)\b', '', raw_text, flags=re.IGNORECASE).strip()
-                    search_q = clean_q if len(clean_q) >= 3 else raw_text
+                    # Dedicated Hinglish to English Query Translator/Normalizer specifically for Wikipedia
+                    stops = [
+                        r'\b(ke|ki|ka|ko|se|me|par|bhi|hi|pe|ne)\b',
+                        r'\b(barme|bare|baare|batao|bato|bataye|bataiye|bata|janana|jaanna|dikhaye|dikhao)\b',
+                        r'\b(what|who|where|when|why|how|is|are|was|were|tell|me|about|explain|describe)\b',
+                        r'\b(kon|kaun|kya|kaisa|kaisi|kaise|kab|kahan|kha|kaha|hai|h|hein|tha|thi|the)\b',
+                        r'\b(sir|please|plz|bhai|bro|jarvis)\b'
+                    ]
+                    cleaned_topic = raw_text
+                    for pat in stops:
+                        cleaned_topic = re.sub(pat, '', cleaned_topic, flags=re.IGNORECASE)
+                    cleaned_topic = re.sub(r'\s+', ' ', cleaned_topic).strip()
+                    search_q = cleaned_topic if len(cleaned_topic) >= 2 else raw_text
+
                     wiki_summary = None
                     try:
                         wiki_summary = wikipedia.summary(search_q, sentences=2, auto_suggest=True)
