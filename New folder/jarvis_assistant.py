@@ -368,22 +368,39 @@ class JarvisBrain:
                 self.api_status = "offline"
 
         if self.api_status == "offline":
-            try:
-                clean_q = re.sub(r'\b(what|who|where|when|is|are|tell|me|about|the|a|an|in|of|ka|ki|ke|ko|batao|bato|kon|hai|kya|sir|plz|please)\b', '', raw_text, flags=re.IGNORECASE).strip()
-                search_q = clean_q if len(clean_q) >= 2 else raw_text
-                search_results = wikipedia.search(search_q)
-                target_topic = search_results[0] if search_results else search_q
-                try:
-                    wiki_summary = wikipedia.summary(target_topic, sentences=2, auto_suggest=False)
-                except wikipedia.exceptions.DisambiguationError as de:
-                    wiki_summary = wikipedia.summary(de.options[0], sentences=2, auto_suggest=False)
-                resp_str = f"According to Wikipedia: {wiki_summary}"
+            is_task_request = any(w in text for w in ["make", "write", "create", "generate", "draft", "banao", "likho", "tayyar"])
+            if is_task_request:
+                if any(w in text for w in ["letter", "patra", "chitti", "application", "mail", "email"]):
+                    resp_str = (
+                        "Here is a formal letter template for you Sir:\n\n"
+                        "[Date]\nTo, [Recipient Name/Title]\n[Company/Organization]\n\n"
+                        "Subject: Formal Request / Application\n\n"
+                        "Dear Sir/Madam,\n\n"
+                        "I am writing this letter to formally bring to your attention regarding...\n\n"
+                        "Thanking you,\nSincerely,\n[Your Name]"
+                    )
+                else:
+                    resp_str = "I would be glad to generate custom content for you Sir! However, custom text generation requires an active Gemini AI connection. Please add a new API key in Settings so I can generate custom content for you!"
                 self.conversation_context.append({"role": "user", "content": raw_text})
                 self.conversation_context.append({"role": "assistant", "content": resp_str})
                 return resp_str
-            except Exception as w_err:
-                print(f"[Desktop Wiki Search Fail] {w_err}")
-                return "Sorry Sir, Gemini AI limit reached or offline. Operating in predefined command mode."
+            else:
+                try:
+                    clean_q = re.sub(r'\b(what|who|where|when|is|are|tell|me|about|the|a|an|in|of|ka|ki|ke|ko|batao|bato|kon|hai|kya|sir|plz|please)\b', '', raw_text, flags=re.IGNORECASE).strip()
+                    search_q = clean_q if len(clean_q) >= 2 else raw_text
+                    search_results = wikipedia.search(search_q)
+                    target_topic = search_results[0] if search_results else search_q
+                    try:
+                        wiki_summary = wikipedia.summary(target_topic, sentences=2, auto_suggest=False)
+                    except wikipedia.exceptions.DisambiguationError as de:
+                        wiki_summary = wikipedia.summary(de.options[0], sentences=2, auto_suggest=False)
+                    resp_str = f"According to Wikipedia: {wiki_summary}"
+                    self.conversation_context.append({"role": "user", "content": raw_text})
+                    self.conversation_context.append({"role": "assistant", "content": resp_str})
+                    return resp_str
+                except Exception as w_err:
+                    print(f"[Desktop Wiki Search Fail] {w_err}")
+                    return "Sorry Sir, Gemini AI limit reached or offline. Operating in predefined command mode."
         return "I am not sure how to respond to that Sir."
 
 
