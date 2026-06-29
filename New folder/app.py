@@ -273,6 +273,15 @@ async def process_chat(req: ChatRequest):
             elif "open amazon" in text_lower:
                 reply_text = "Opening Amazon Sir."
                 action_url = "https://www.amazon.com"
+            elif "github" in text_lower and any(w in text_lower for w in ["open", "dekho", "show", "kholo"]):
+                reply_text = "Opening your GitHub profile Sir: https://github.com/abhiiloves"
+                action_url = "https://github.com/abhiiloves"
+            elif "linkedin" in text_lower and any(w in text_lower for w in ["open", "dekho", "show", "kholo"]):
+                reply_text = "Opening your LinkedIn profile Sir: https://www.linkedin.com/in/bhanu-60a88a26a"
+                action_url = "https://www.linkedin.com/in/bhanu-60a88a26a"
+            elif "instagram" in text_lower and any(w in text_lower for w in ["open", "dekho", "show", "kholo"]):
+                reply_text = "Opening your Instagram profile Sir: https://www.instagram.com/abhiiloves"
+                action_url = "https://www.instagram.com/abhiiloves"
 
         # Wikipedia queries
         if not reply_text and "wikipedia" in text_lower:

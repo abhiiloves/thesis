@@ -356,6 +356,15 @@ class JarvisBrain:
         if "open amazon" in text:
             webbrowser.open("https://www.amazon.com")
             return "Opening Amazon Sir."
+        if "github" in text and any(w in text for w in ["open", "dekho", "show", "kholo"]):
+            webbrowser.open("https://github.com/abhiiloves")
+            return "Opening your GitHub profile Sir."
+        if "linkedin" in text and any(w in text for w in ["open", "dekho", "show", "kholo"]):
+            webbrowser.open("https://www.linkedin.com/in/bhanu-60a88a26a")
+            return "Opening your LinkedIn profile Sir."
+        if "instagram" in text and any(w in text for w in ["open", "dekho", "show", "kholo"]):
+            webbrowser.open("https://www.instagram.com/abhiiloves")
+            return "Opening your Instagram profile Sir."
 
         # Wikipedia queries
         if "wikipedia" in text:
