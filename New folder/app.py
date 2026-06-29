@@ -210,55 +210,49 @@ async def process_chat(req: ChatRequest):
         reply_text = None
         action_url = None
 
-        # Auto-detect personal / friend / event fact statements (ONLY when user is TELLING, not asking)
-        is_question = any(w in text_lower for w in ["what", "who", "tell", "when", "kya", "kaun", "kon", "kab", "batao", "bato"])
-        if not is_question:
-            if any(w in text_lower for w in ["friend", "friends", "dost", "dosto"]) and any(w in text_lower for w in ["birthday", "bday", "janamdin"]):
-                save_user_knowledge(f"friend_bday_{get_ist_now().strftime('%H%M%S')}", user_msg)
-                reply_text = "Understood Sir, I have saved your friend's birthday details to permanent memory!"
-            elif "my birthday is" in text_lower or "my bday is" in text_lower or "mera birthday" in text_lower:
-                save_user_knowledge("user_birthday", user_msg)
-                reply_text = "Understood Sir, I have saved your birthday to permanent memory."
-            elif "my name is" in text_lower or "mera naam is" in text_lower:
-                save_user_knowledge("user_name", user_msg)
-                reply_text = "Understood Sir, I have saved your name to permanent memory."
-            elif "friend" in text_lower or "friends" in text_lower:
-                if (" is " in f" {text_lower} " or " are " in f" {text_lower} ") and len(text_lower.split()) > 3:
-                    save_user_knowledge(f"fact_{get_ist_now().strftime('%H%M%S')}", user_msg)
-                    reply_text = "Understood Sir, I have noted and saved your friends' details to permanent memory."
-            elif any(w in text_lower for w in ["practical", "exam", "test", "holiday", "chutti", "event", "meeting", "interview", "presentation", "trip"]) or any(m in text_lower for m in ["july", "august", "september", "october", "november", "december", "january", "february", "march", "april", "may", "june"]):
-                if any(k in text_lower for k in ["my", "mera", "meri", "mere", "on", "is", "hai"]):
-                    event_id = f"event_{get_ist_now().strftime('%H%M%S')}"
-                    save_user_knowledge(event_id, user_msg)
-                    reply_text = f"Understood Sir, I have noted and saved your schedule ({user_msg}) to permanent memory!"
-
         # Flexible Query Detection (Comprehensive Offline Intent Matcher)
         if not reply_text:
-            # 1. Assistant Name Queries ("what is your name", "your name", "tera naam", etc.)
-            if ("your name" in text_lower or "tera naam" in text_lower or "apka naam" in text_lower or "aapka naam" in text_lower) and not ("my name" in text_lower or "mera naam" in text_lower):
+            # 1. User Friends Queries & Friend Birthdays
+            if any(w in text_lower for w in ["friend", "friends", "dost", "dosto"]) and any(w in text_lower for w in ["birthday", "bday", "brithday", "janamdin", "dates", "date"]):
+                if not any(k in text_lower for k in [" is ", " on ", " hai ", "=", ":"]):
+                    knowledge = load_user_knowledge()
+                    bday_items = [v for k, v in knowledge.items() if "birthday" in k.lower() or "bday" in k.lower() or "birthday" in v.lower() or "bday" in v.lower() or "janamdin" in v.lower()]
+                    if bday_items:
+                        bdays_formatted = "\n• " + "\n• ".join(bday_items)
+                        reply_text = f"Here are your saved friend birthday details Sir:{bdays_formatted}"
+                    else:
+                        reply_text = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir. Kushagra's birthday is April 14th, Vikas's is July 8th, and Pradeep's is June 19th."
+            elif any(w in text_lower for w in ["friend", "friends", "dost", "dosto"]) and any(w in text_lower for w in ["name", "naam", "who", "bato", "batao", "list", "kaun", "kon"]):
+                reply_text = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir."
+            
+            # 2. Assistant Name Queries
+            elif ("your name" in text_lower or "tera naam" in text_lower or "apka naam" in text_lower or "aapka naam" in text_lower) and not ("my name" in text_lower or "mera naam" in text_lower):
                 reply_text = "I am Jarvis, your intelligent AI assistant created by Abhii Abhishek Sir!"
             elif "who are you" in text_lower or "tum kaun ho" in text_lower or "tum kon ho" in text_lower:
                 reply_text = "I am Jarvis, your intelligent AI assistant created by Abhii Abhishek Sir!"
             
-            # 2. User Friends Queries & Friend Birthdays
-            elif any(w in text_lower for w in ["friend", "friends", "dost", "dosto"]) and any(w in text_lower for w in ["birthday", "bday", "brithday", "janamdin", "dates", "date"]):
-                knowledge = load_user_knowledge()
-                bday_items = [v for k, v in knowledge.items() if "birthday" in k.lower() or "bday" in k.lower() or "birthday" in v.lower() or "bday" in v.lower() or "janamdin" in v.lower()]
-                if bday_items:
-                    bdays_formatted = "\n• " + "\n• ".join(bday_items)
-                    reply_text = f"Here are your saved friend birthday details Sir:{bdays_formatted}"
-                else:
-                    reply_text = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir. You haven't saved specific birthday dates for them yet."
-            elif any(w in text_lower for w in ["friend", "friends", "dost", "dosto"]) and any(w in text_lower for w in ["name", "naam", "who", "bato", "batao", "list", "kaun", "kon"]):
-                reply_text = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir."
-            
             # 3. User Name Queries
             elif any(w in text_lower for w in ["mera naam", "my name"]) and any(w in text_lower for w in ["kya", "what", "batao", "bato", "tell"]):
-                reply_text = "Your name is Abhii Abhishek Sir!"
+                reply_text = "Your name is Bhanu (Abhii Abhishek) Sir!"
             
             # 4. Creator / Owner Queries
             elif any(w in text_lower for w in ["who created", "who made", "owner", "malik", "kisne banaya"]):
-                reply_text = "I was created by Abhii Abhishek at NGF College, Palwal Sir!"
+                reply_text = "I was created by Bhanu Sir at NGF College, Palwal!"
+
+        # Auto-detect personal / friend / event fact statements (ONLY when user is TELLING facts)
+        if not reply_text:
+            is_question = any(w in text_lower for w in ["what", "who", "tell", "when", "kya", "kaun", "kon", "kab", "batao", "bato", "list", "show", "get", "with"])
+            if not is_question:
+                if any(w in text_lower for w in ["friend", "friends", "dost", "dosto"]) and any(w in text_lower for w in ["birthday", "bday", "janamdin"]):
+                    if any(k in text_lower for k in [" is ", " on ", " hai ", "=", ":"]):
+                        save_user_knowledge(f"friend_bday_{get_ist_now().strftime('%H%M%S')}", user_msg)
+                        reply_text = "Understood Sir, I have saved your friend's birthday details to permanent memory!"
+                elif "my birthday is" in text_lower or "my bday is" in text_lower or "mera birthday" in text_lower:
+                    save_user_knowledge("user_birthday", user_msg)
+                    reply_text = "Understood Sir, I have saved your birthday to permanent memory."
+                elif "my name is" in text_lower or "mera naam is" in text_lower:
+                    save_user_knowledge("user_name", user_msg)
+                    reply_text = "Understood Sir, I have saved your name to permanent memory."
             
             # 5. Saved Events / Schedule Queries ("kal kya hai", "agle mahine kya hai", "my schedule", "events")
             elif any(w in text_lower for w in ["schedule", "event", "events", "practical", "exam", "chutti", "holiday", "kaam", "important"]) and any(w in text_lower for w in ["kya", "what", "konsa", "konsi", "batao", "bato", "list", "tell", "show", "agle mahine", "next month", "upcoming"]):

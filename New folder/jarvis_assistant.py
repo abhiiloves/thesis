@@ -260,15 +260,45 @@ class JarvisBrain:
 
         text = raw_text.lower()
 
-        # Auto-detect personal / friend / event fact statements (ONLY when user is TELLING, not asking)
-        is_question = any(w in text for w in ["what", "who", "tell", "when", "kya", "kaun", "kon", "kab", "batao", "bato"])
-        if not is_question:
-            if any(w in text for w in ["friend", "friends", "dost", "dosto"]) and any(w in text for w in ["birthday", "bday", "janamdin"]):
-                save_user_knowledge(f"friend_bday_{get_ist_now().strftime('%H%M%S')}", raw_text)
-                resp_str = "Understood Sir, I have saved your friend's birthday details to permanent memory!"
+        # Flexible Query Detection (Comprehensive Offline Intent Matcher)
+        if any(w in text for w in ["friend", "friends", "dost", "dosto"]) and any(w in text for w in ["birthday", "bday", "brithday", "janamdin", "dates", "date"]):
+            if not any(k in text for k in [" is ", " on ", " hai ", "=", ":"]):
+                knowledge = load_user_knowledge()
+                bday_items = [v for k, v in knowledge.items() if "birthday" in k.lower() or "bday" in k.lower() or "birthday" in v.lower() or "bday" in v.lower() or "janamdin" in v.lower()]
+                if bday_items:
+                    bdays_formatted = "\n• " + "\n• ".join(bday_items)
+                    resp_str = f"Here are your saved friend birthday details Sir:{bdays_formatted}"
+                else:
+                    resp_str = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir. Kushagra's birthday is April 14th, Vikas's is July 8th, and Pradeep's is June 19th."
                 self.conversation_context.append({"role": "user", "content": raw_text})
                 self.conversation_context.append({"role": "assistant", "content": resp_str})
                 return resp_str
+        elif any(w in text for w in ["friend", "friends", "dost", "dosto"]) and any(w in text for w in ["name", "naam", "who", "bato", "batao", "list", "kaun", "kon"]):
+            resp_str = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir."
+            self.conversation_context.append({"role": "user", "content": raw_text})
+            self.conversation_context.append({"role": "assistant", "content": resp_str})
+            return resp_str
+        elif ("your name" in text or "tera naam" in text or "apka naam" in text or "aapka naam" in text) and not ("my name" in text or "mera naam" in text):
+            resp_str = "I am Jarvis, your intelligent AI assistant created by Abhii Abhishek Sir!"
+            self.conversation_context.append({"role": "user", "content": raw_text})
+            self.conversation_context.append({"role": "assistant", "content": resp_str})
+            return resp_str
+        elif "who are you" in text or "tum kaun ho" in text or "tum kon ho" in text:
+            resp_str = "I am Jarvis, your intelligent AI assistant created by Abhii Abhishek Sir!"
+            self.conversation_context.append({"role": "user", "content": raw_text})
+            self.conversation_context.append({"role": "assistant", "content": resp_str})
+            return resp_str
+
+        # Auto-detect personal / friend fact statements (ONLY when user is TELLING facts)
+        is_question = any(w in text for w in ["what", "who", "tell", "when", "kya", "kaun", "kon", "kab", "batao", "bato", "list", "show", "get", "with"])
+        if not is_question:
+            if any(w in text for w in ["friend", "friends", "dost", "dosto"]) and any(w in text for w in ["birthday", "bday", "janamdin"]):
+                if any(k in text for k in [" is ", " on ", " hai ", "=", ":"]):
+                    save_user_knowledge(f"friend_bday_{get_ist_now().strftime('%H%M%S')}", raw_text)
+                    resp_str = "Understood Sir, I have saved your friend's birthday details to permanent memory!"
+                    self.conversation_context.append({"role": "user", "content": raw_text})
+                    self.conversation_context.append({"role": "assistant", "content": resp_str})
+                    return resp_str
             elif "my birthday is" in text or "my bday is" in text or "mera birthday" in text:
                 save_user_knowledge("user_birthday", raw_text)
                 resp_str = "Understood Sir, I have saved your birthday to permanent memory."
@@ -281,44 +311,6 @@ class JarvisBrain:
                 self.conversation_context.append({"role": "user", "content": raw_text})
                 self.conversation_context.append({"role": "assistant", "content": resp_str})
                 return resp_str
-            elif "friend" in text or "friends" in text:
-                if (" is " in f" {text} " or " are " in f" {text} ") and len(text.split()) > 3:
-                    save_user_knowledge(f"fact_{get_ist_now().strftime('%H%M%S')}", raw_text)
-                    resp_str = "Understood Sir, I have noted and saved your friends' details to permanent memory."
-                    self.conversation_context.append({"role": "user", "content": raw_text})
-                    self.conversation_context.append({"role": "assistant", "content": resp_str})
-                    return resp_str
-            elif any(w in text for w in ["practical", "exam", "test", "holiday", "chutti", "event", "meeting", "interview", "presentation", "trip"]) or any(m in text for m in ["july", "august", "september", "october", "november", "december", "january", "february", "march", "april", "may", "june"]):
-                if any(k in text for k in ["my", "mera", "meri", "mere", "on", "is", "hai"]):
-                    event_id = f"event_{get_ist_now().strftime('%H%M%S')}"
-                    save_user_knowledge(event_id, raw_text)
-                    resp_str = f"Understood Sir, I have noted and saved your schedule ({raw_text}) to permanent memory!"
-                    self.conversation_context.append({"role": "user", "content": raw_text})
-                    self.conversation_context.append({"role": "assistant", "content": resp_str})
-                    return resp_str
-
-        # Flexible Query Detection (Comprehensive Offline Intent Matcher)
-        if ("your name" in text or "tera naam" in text or "apka naam" in text or "aapka naam" in text) and not ("my name" in text or "mera naam" in text):
-            resp_str = "I am Jarvis, your intelligent AI assistant created by Abhii Abhishek Sir!"
-            self.conversation_context.append({"role": "user", "content": raw_text})
-            self.conversation_context.append({"role": "assistant", "content": resp_str})
-            return resp_str
-        elif "who are you" in text or "tum kaun ho" in text or "tum kon ho" in text:
-            resp_str = "I am Jarvis, your intelligent AI assistant created by Abhii Abhishek Sir!"
-            self.conversation_context.append({"role": "user", "content": raw_text})
-            self.conversation_context.append({"role": "assistant", "content": resp_str})
-            return resp_str
-        elif any(w in text for w in ["friend", "friends", "dost", "dosto"]) and any(w in text for w in ["birthday", "bday", "brithday", "janamdin", "dates", "date"]):
-            knowledge = load_user_knowledge()
-            bday_items = [v for k, v in knowledge.items() if "birthday" in k.lower() or "bday" in k.lower() or "birthday" in v.lower() or "bday" in v.lower() or "janamdin" in v.lower()]
-            if bday_items:
-                bdays_formatted = "\n• " + "\n• ".join(bday_items)
-                resp_str = f"Here are your saved friend birthday details Sir:{bdays_formatted}"
-            else:
-                resp_str = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir. You haven't saved specific birthday dates for them yet."
-            self.conversation_context.append({"role": "user", "content": raw_text})
-            self.conversation_context.append({"role": "assistant", "content": resp_str})
-            return resp_str
         elif any(w in text for w in ["friend", "friends", "dost", "dosto"]) and any(w in text for w in ["name", "naam", "who", "bato", "batao", "list", "kaun", "kon"]):
             resp_str = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir."
             self.conversation_context.append({"role": "user", "content": raw_text})
