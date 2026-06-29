@@ -564,9 +564,13 @@ class JarvisBrain:
                 self.conversation_context.append({"role": "assistant", "content": resp_str})
                 return resp_str
             else:
-                is_knowledge_query = any(w in text for w in ["what", "who", "where", "when", "why", "how", "tell", "explain", "describe", "wikipedia", "search", "history", "histroy", "barme", "bare", "baare", "batao", "bato", "kaun", "kon", "kya"]) or len(text.strip()) > 10
-                is_greeting = any(w in text for w in ["haal", "kaise", "hello", "hi", "hey", "sup", "greetings"])
-                if is_knowledge_query and not is_greeting:
+                is_greeting = any(w in text for w in ["haal", "hal", "kaise", "kese", "hello", "hi", "hey", "sup", "greetings"])
+                if is_greeting:
+                    resp_str = "All systems optimal Sir! Ready for your commands."
+                    self.conversation_context.append({"role": "user", "content": raw_text})
+                    self.conversation_context.append({"role": "assistant", "content": resp_str})
+                    return resp_str
+                else:
                     try:
                         # Dedicated Hinglish to English Query Translator/Normalizer specifically for Wikipedia
                         stops = [
@@ -609,19 +613,20 @@ class JarvisBrain:
                         if wiki_summary and len(wiki_summary.strip()) > 20:
                             resp_str = f"According to Wikipedia:\n{wiki_summary}"
                         else:
-                            resp_str = f"Sir, Gemini AI connectivity is currently offline or rate-limited. Please add an active Gemini API key in Settings to fetch full live answers!"
+                            resp_str = "All systems optimal Sir! Standing by for your commands."
                         self.conversation_context.append({"role": "user", "content": raw_text})
                         self.conversation_context.append({"role": "assistant", "content": resp_str})
                         return resp_str
                     except Exception as w_err:
                         print(f"[Desktop Wiki Search Fail] {w_err}")
-                        return "Sorry Sir, Gemini AI limit reached or offline. Operating in predefined command mode."
-                else:
-                    resp_str = "All systems optimal Sir! Ready for your commands."
-                    self.conversation_context.append({"role": "user", "content": raw_text})
-                    self.conversation_context.append({"role": "assistant", "content": resp_str})
-                    return resp_str
-        return "All systems optimal Sir! Ready for your commands."
+                        resp_str = "All systems optimal Sir! Standing by for your commands."
+                        self.conversation_context.append({"role": "user", "content": raw_text})
+                        self.conversation_context.append({"role": "assistant", "content": resp_str})
+                        return resp_str
+        resp_str = "All systems optimal Sir! Ready for your commands."
+        self.conversation_context.append({"role": "user", "content": raw_text})
+        self.conversation_context.append({"role": "assistant", "content": resp_str})
+        return resp_str
 
 
 # ==========================================

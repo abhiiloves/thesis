@@ -123,11 +123,16 @@ PREDEFINED_RESPONSES = {
     'hi': ['Hello! Sir, I am ready to assist you.', 'Hi sir, I am ready to assist you.', 'Hello Sir, I am ready to assist you.'],
     'hey': ['Hello! Sir, I am ready to assist you.', 'Hey Sir, how can I help you today?', 'Hello Sir, standing by.'],
     'greetings': ['Hello! Sir, I am ready to assist you.', 'Hi sir, I am ready to assist you.', 'Hello Sir, I am ready to assist you.'],
-    'kya haal h': ['All systems optimal, Sir! Ready to assist you.', 'Main badhiya hoon Sir! Standing by for your instructions.', 'Everything is running smoothly Sir! How may I help you today?'],
-    'kya haal hai': ['All systems optimal, Sir! Ready to assist you.', 'Main badhiya hoon Sir! Standing by for your instructions.', 'Everything is running smoothly Sir! How may I help you today?'],
+    'kya haal h': ['All systems optimal, Sir! Ready to assist you.', 'Main badhiya hoon Sir! Standing by for your instructions.'],
+    'kya haal hai': ['All systems optimal, Sir! Ready to assist you.', 'Main badhiya hoon Sir! Standing by for your instructions.'],
     'kya haal': ['All systems optimal, Sir! Ready to assist you.', 'Main badhiya hoon Sir! Standing by for your instructions.'],
+    'ky haal h': ['All systems optimal, Sir! Ready to assist you.', 'Main badhiya hoon Sir! Standing by for your instructions.'],
+    'ky haal': ['All systems optimal, Sir! Ready to assist you.', 'Main badhiya hoon Sir! Standing by for your instructions.'],
+    'ky hal': ['All systems optimal, Sir! Ready to assist you.', 'Main badhiya hoon Sir! Standing by for your instructions.'],
+    'kya hal': ['All systems optimal, Sir! Ready to assist you.', 'Main badhiya hoon Sir! Standing by for your instructions.'],
     'kaise ho': ['All systems optimal, Sir! I am ready to assist you.', 'Main badhiya hoon Sir, aap bataiye kaise hain?'],
     'kaise h': ['All systems optimal, Sir! I am ready to assist you.', 'Main badhiya hoon Sir, aap bataiye kaise hain?'],
+    'kese ho': ['All systems optimal, Sir! I am ready to assist you.', 'Main badhiya hoon Sir, aap bataiye kaise hain?'],
     'kya chal raha hai': ['All systems running smoothly Sir! Ready for your commands.'],
     'kya chal rha h': ['All systems running smoothly Sir! Ready for your commands.'],
     'who are my friends': ['Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir.'],
@@ -439,75 +444,70 @@ async def process_chat(req: ChatRequest):
                 api_status = "online" if active_client else "offline"
 
         if not reply_text:
-            if api_status == "offline":
-                is_task_request = any(w in text_lower for w in ["make", "write", "create", "generate", "draft", "banao", "likho", "tayyar"])
-                if is_task_request:
-                    if any(w in text_lower for w in ["letter", "patra", "chitti", "application", "mail", "email"]):
-                        reply_text = (
-                            "Here is a formal letter template for you Sir:\n\n"
-                            "[Date]\nTo, [Recipient Name/Title]\n[Company/Organization]\n\n"
-                            "Subject: Formal Request / Application\n\n"
-                            "Dear Sir/Madam,\n\n"
-                            "I am writing this letter to formally bring to your attention regarding...\n\n"
-                            "Thanking you,\nSincerely,\n[Your Name]"
-                        )
-                    else:
-                        reply_text = "I would be glad to generate custom content for you Sir! However, custom text generation requires an active Gemini AI connection. Please add a new API key in Settings so I can generate custom content for you!"
+            is_task_request = any(w in text_lower for w in ["make", "write", "create", "generate", "draft", "banao", "likho", "tayyar"])
+            if is_task_request:
+                if any(w in text_lower for w in ["letter", "patra", "chitti", "application", "mail", "email"]):
+                    reply_text = (
+                        "Here is a formal letter template for you Sir:\n\n"
+                        "[Date]\nTo, [Recipient Name/Title]\n[Company/Organization]\n\n"
+                        "Subject: Formal Request / Application\n\n"
+                        "Dear Sir/Madam,\n\n"
+                        "I am writing this letter to formally bring to your attention regarding...\n\n"
+                        "Thanking you,\nSincerely,\n[Your Name]"
+                    )
                 else:
-                    is_knowledge_query = any(w in text_lower for w in ["what", "who", "where", "when", "why", "how", "tell", "explain", "describe", "wikipedia", "search", "history", "histroy", "barme", "bare", "baare", "batao", "bato", "kaun", "kon", "kya"]) or len(text_lower.strip()) > 10
-                    is_greeting = any(w in text_lower for w in ["haal", "kaise", "hello", "hi", "hey", "sup", "greetings"])
-                    if is_knowledge_query and not is_greeting:
-                        try:
-                            # Dedicated Hinglish to English Query Translator/Normalizer specifically for Wikipedia
-                            stops = [
-                                r'\b(ke|ki|ka|ko|se|me|par|bhi|hi|pe|ne)\b',
-                                r'\b(barme|bare|baare|batao|bato|bataye|bataiye|bata|janana|jaanna|dikhaye|dikhao)\b',
-                                r'\b(what|who|where|when|why|how|is|are|was|were|tell|me|about|explain|describe)\b',
-                                r'\b(kon|kaun|kya|kaisa|kaisi|kaise|kab|kahan|kha|kaha|hai|h|hein|tha|thi|the)\b',
-                                r'\b(sir|please|plz|bhai|bro|jarvis)\b'
-                            ]
-                            cleaned_topic = user_msg
-                            for pat in stops:
-                                cleaned_topic = re.sub(pat, '', cleaned_topic, flags=re.IGNORECASE)
-                            cleaned_topic = re.sub(r'\s+', ' ', cleaned_topic).strip()
-                            search_q = cleaned_topic if len(cleaned_topic) >= 2 else user_msg
+                    reply_text = "I would be glad to generate custom content for you Sir! However, custom text generation requires an active Gemini AI connection. Please add a new API key in Settings so I can generate custom content for you!"
+            else:
+                is_greeting = any(w in text_lower for w in ["haal", "hal", "kaise", "kese", "hello", "hi", "hey", "sup", "greetings"])
+                if is_greeting:
+                    reply_text = "All systems optimal Sir! Ready for your commands."
+                else:
+                    try:
+                        # Dedicated Hinglish to English Query Translator/Normalizer specifically for Wikipedia
+                        stops = [
+                            r'\b(ke|ki|ka|ko|se|me|par|bhi|hi|pe|ne)\b',
+                            r'\b(barme|bare|baare|batao|bato|bataye|bataiye|bata|janana|jaanna|dikhaye|dikhao)\b',
+                            r'\b(what|who|where|when|why|how|is|are|was|were|tell|me|about|explain|describe)\b',
+                            r'\b(kon|kaun|kya|kaisa|kaisi|kaise|kab|kahan|kha|kaha|hai|h|hein|tha|thi|the)\b',
+                            r'\b(sir|please|plz|bhai|bro|jarvis)\b'
+                        ]
+                        cleaned_topic = user_msg
+                        for pat in stops:
+                            cleaned_topic = re.sub(pat, '', cleaned_topic, flags=re.IGNORECASE)
+                        cleaned_topic = re.sub(r'\s+', ' ', cleaned_topic).strip()
+                        search_q = cleaned_topic if len(cleaned_topic) >= 2 else user_msg
 
-                            wiki_summary = None
+                        wiki_summary = None
+                        try:
+                            wiki_summary = wikipedia.summary(search_q, sentences=2, auto_suggest=False)
+                        except wikipedia.exceptions.DisambiguationError as de:
                             try:
-                                wiki_summary = wikipedia.summary(search_q, sentences=2, auto_suggest=False)
-                            except wikipedia.exceptions.DisambiguationError as de:
-                                try:
-                                    # Filter options to find best match instead of wrong abbreviations
-                                    valid_opt = [opt for opt in de.options if search_q.lower() in opt.lower() or opt.lower() in search_q.lower()]
-                                    target_opt = valid_opt[0] if valid_opt else de.options[0]
-                                    wiki_summary = wikipedia.summary(target_opt, sentences=2, auto_suggest=False)
-                                except Exception:
-                                    pass
+                                valid_opt = [opt for opt in de.options if search_q.lower() in opt.lower() or opt.lower() in search_q.lower()]
+                                target_opt = valid_opt[0] if valid_opt else de.options[0]
+                                wiki_summary = wikipedia.summary(target_opt, sentences=2, auto_suggest=False)
+                            except Exception:
+                                pass
+                        except Exception:
+                            pass
+
+                        if not wiki_summary:
+                            try:
+                                search_results = wikipedia.search(search_q)
+                                if search_results:
+                                    try:
+                                        wiki_summary = wikipedia.summary(search_results[0], sentences=2, auto_suggest=False)
+                                    except wikipedia.exceptions.DisambiguationError as de2:
+                                        wiki_summary = wikipedia.summary(de2.options[0], sentences=2, auto_suggest=False)
                             except Exception:
                                 pass
 
-                            if not wiki_summary:
-                                try:
-                                    search_results = wikipedia.search(search_q)
-                                    if search_results:
-                                        try:
-                                            wiki_summary = wikipedia.summary(search_results[0], sentences=2, auto_suggest=False)
-                                        except wikipedia.exceptions.DisambiguationError as de2:
-                                            wiki_summary = wikipedia.summary(de2.options[0], sentences=2, auto_suggest=False)
-                                except Exception:
-                                    pass
-
-                            if wiki_summary and len(wiki_summary.strip()) > 20:
-                                reply_text = f"According to Wikipedia:\n{wiki_summary}"
-                            else:
-                                reply_text = f"Sir, Gemini AI connectivity is currently offline or rate-limited. Please add an active Gemini API key in Settings to fetch full live answers!"
-                        except Exception as w_err:
-                            print(f"[Offline Wiki Search Fail] {w_err}")
-                            reply_text = "Sorry Sir, Gemini AI limit reached or offline. Operating in predefined command mode."
-                    else:
-                        reply_text = "All systems optimal Sir! Ready for your commands."
-            else:
-                reply_text = "I am not sure how to respond to that Sir."
+                        if wiki_summary and len(wiki_summary.strip()) > 20:
+                            reply_text = f"According to Wikipedia:\n{wiki_summary}"
+                        else:
+                            reply_text = "All systems optimal Sir! Standing by for your commands."
+                    except Exception as w_err:
+                        print(f"[Offline Wiki Search Fail] {w_err}")
+                        reply_text = "All systems optimal Sir! Standing by for your commands."
 
         # Record context & assistant reply
         session["context"].append({"role": "user", "content": user_msg})
