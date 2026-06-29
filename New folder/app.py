@@ -469,7 +469,8 @@ async def process_chat(req: ChatRequest):
                             r'\b(barme|bare|baare|batao|bato|bataye|bataiye|bata|janana|jaanna|dikhaye|dikhao)\b',
                             r'\b(what|who|where|when|why|how|is|are|was|were|tell|me|about|explain|describe)\b',
                             r'\b(kon|kaun|kya|kaisa|kaisi|kaise|kab|kahan|kha|kaha|hai|h|hein|tha|thi|the)\b',
-                            r'\b(sir|please|plz|bhai|bro|jarvis)\b'
+                            r'\b(krte|karna|karo|kare|hote|hota|hoti|karte|karta|karti|do|doing|make|use|used)\b',
+                            r'\b(sir|please|plz|bhai|bro|jarvis|ok)\b'
                         ]
                         cleaned_topic = user_msg
                         for pat in stops:
@@ -478,28 +479,39 @@ async def process_chat(req: ChatRequest):
                         search_q = cleaned_topic if len(cleaned_topic) >= 2 else user_msg
 
                         wiki_summary = None
-                        try:
-                            wiki_summary = wikipedia.summary(search_q, sentences=2, auto_suggest=False)
-                        except wikipedia.exceptions.DisambiguationError as de:
-                            try:
-                                valid_opt = [opt for opt in de.options if search_q.lower() in opt.lower() or opt.lower() in search_q.lower()]
-                                target_opt = valid_opt[0] if valid_opt else de.options[0]
-                                wiki_summary = wikipedia.summary(target_opt, sentences=2, auto_suggest=False)
-                            except Exception:
-                                pass
-                        except Exception:
-                            pass
+                        queries_to_try = [search_q]
+                        # Extract first meaningful noun/word if multi-word query fails
+                        words = [w for w in re.findall(r'\w+', search_q) if len(w) >= 3]
+                        if words and words[0].lower() not in queries_to_try:
+                            queries_to_try.append(words[0])
 
-                        if not wiki_summary:
+                        for q_term in queries_to_try:
                             try:
-                                search_results = wikipedia.search(search_q)
-                                if search_results:
-                                    try:
-                                        wiki_summary = wikipedia.summary(search_results[0], sentences=2, auto_suggest=False)
-                                    except wikipedia.exceptions.DisambiguationError as de2:
-                                        wiki_summary = wikipedia.summary(de2.options[0], sentences=2, auto_suggest=False)
+                                wiki_summary = wikipedia.summary(q_term, sentences=2, auto_suggest=False)
+                                if wiki_summary: break
+                            except wikipedia.exceptions.DisambiguationError as de:
+                                try:
+                                    valid_opt = [opt for opt in de.options if q_term.lower() in opt.lower() or opt.lower() in q_term.lower()]
+                                    target_opt = valid_opt[0] if valid_opt else de.options[0]
+                                    wiki_summary = wikipedia.summary(target_opt, sentences=2, auto_suggest=False)
+                                    if wiki_summary: break
+                                except Exception:
+                                    pass
                             except Exception:
                                 pass
+
+                            if not wiki_summary:
+                                try:
+                                    search_results = wikipedia.search(q_term)
+                                    if search_results:
+                                        try:
+                                            wiki_summary = wikipedia.summary(search_results[0], sentences=2, auto_suggest=False)
+                                            if wiki_summary: break
+                                        except wikipedia.exceptions.DisambiguationError as de2:
+                                            wiki_summary = wikipedia.summary(de2.options[0], sentences=2, auto_suggest=False)
+                                            if wiki_summary: break
+                                except Exception:
+                                    pass
 
                         if wiki_summary and len(wiki_summary.strip()) > 20:
                             reply_text = f"According to Wikipedia:\n{wiki_summary}"
