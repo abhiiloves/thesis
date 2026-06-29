@@ -541,10 +541,10 @@ class JarvisBrain:
                     self.api_status = "online"
                     return reply_text
                 else:
-                    self.api_status = "online" if self.gemini_client else "offline"
+                    self.api_status = "offline"
             except Exception as err:
                 print(f"[Gemini API Error] {err}")
-                self.api_status = "online" if self.gemini_client else "offline"
+                self.api_status = "offline"
 
         if self.api_status == "offline":
             is_task_request = any(w in text for w in ["make", "write", "create", "generate", "draft", "banao", "likho", "tayyar"])
@@ -559,7 +559,7 @@ class JarvisBrain:
                         "Thanking you,\nSincerely,\n[Your Name]"
                     )
                 else:
-                    resp_str = "I would be glad to generate custom content for you Sir! However, custom text generation requires an active Gemini AI connection. Please add a new API key in Settings so I can generate custom content for you!"
+                    resp_str = "Sir, Gemini AI limit reached or offline! Please add a new API key in Settings to generate custom AI content."
                 self.conversation_context.append({"role": "user", "content": raw_text})
                 self.conversation_context.append({"role": "assistant", "content": resp_str})
                 return resp_str
@@ -589,7 +589,6 @@ class JarvisBrain:
 
                         wiki_summary = None
                         queries_to_try = [search_q]
-                        # Extract first meaningful noun/word if multi-word query fails
                         words = [w for w in re.findall(r'\w+', search_q) if len(w) >= 3]
                         if words and words[0].lower() not in queries_to_try:
                             queries_to_try.append(words[0])
@@ -625,13 +624,13 @@ class JarvisBrain:
                         if wiki_summary and len(wiki_summary.strip()) > 20:
                             resp_str = f"According to Wikipedia:\n{wiki_summary}"
                         else:
-                            resp_str = "All systems optimal Sir! Standing by for your commands."
+                            resp_str = "Sir, Gemini AI limit reached or offline. Operating in offline predefined command mode! Please add a new API key in Settings."
                         self.conversation_context.append({"role": "user", "content": raw_text})
                         self.conversation_context.append({"role": "assistant", "content": resp_str})
                         return resp_str
                     except Exception as w_err:
                         print(f"[Desktop Wiki Search Fail] {w_err}")
-                        resp_str = "All systems optimal Sir! Standing by for your commands."
+                        resp_str = "Sir, Gemini AI limit reached or offline. Operating in offline predefined command mode! Please add a new API key in Settings."
                         self.conversation_context.append({"role": "user", "content": raw_text})
                         self.conversation_context.append({"role": "assistant", "content": resp_str})
                         return resp_str

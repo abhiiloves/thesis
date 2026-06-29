@@ -420,7 +420,11 @@ async def process_chat(req: ChatRequest):
                 prompt_parts.append(f"User: {user_msg}\nJarvis:")
 
                 response = None
-                models_to_try = [req.model, "gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite"]
+                # Default is gemini-2.5-flash-lite, then cascade through other flash models if limit reached
+                models_to_try = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite"]
+                if req.model and req.model not in models_to_try:
+                    models_to_try.insert(0, req.model)
+
                 for m_name in models_to_try:
                     try:
                         resp = active_client.models.generate_content(
@@ -438,10 +442,11 @@ async def process_chat(req: ChatRequest):
                     reply_text = response.text.strip()
                     api_status = "online"
                 else:
-                    api_status = "online" if active_client else "offline"
+                    # All models failed / quota reached -> Mark offline and trigger offline predefined & Wikipedia search!
+                    api_status = "offline"
             except Exception as e:
                 print(f"[Gemini Error] {e}")
-                api_status = "online" if active_client else "offline"
+                api_status = "offline"
 
         if not reply_text:
             is_task_request = any(w in text_lower for w in ["make", "write", "create", "generate", "draft", "banao", "likho", "tayyar"])
@@ -456,7 +461,7 @@ async def process_chat(req: ChatRequest):
                         "Thanking you,\nSincerely,\n[Your Name]"
                     )
                 else:
-                    reply_text = "I would be glad to generate custom content for you Sir! However, custom text generation requires an active Gemini AI connection. Please add a new API key in Settings so I can generate custom content for you!"
+                    reply_text = "Sir, Gemini AI limit reached or offline! Please add a new API key in Settings to generate custom AI content."
             else:
                 is_greeting = any(w in text_lower for w in ["haal", "hal", "kaise", "kese", "hello", "hi", "hey", "sup", "greetings"])
                 if is_greeting:
@@ -480,7 +485,6 @@ async def process_chat(req: ChatRequest):
 
                         wiki_summary = None
                         queries_to_try = [search_q]
-                        # Extract first meaningful noun/word if multi-word query fails
                         words = [w for w in re.findall(r'\w+', search_q) if len(w) >= 3]
                         if words and words[0].lower() not in queries_to_try:
                             queries_to_try.append(words[0])
@@ -516,10 +520,10 @@ async def process_chat(req: ChatRequest):
                         if wiki_summary and len(wiki_summary.strip()) > 20:
                             reply_text = f"According to Wikipedia:\n{wiki_summary}"
                         else:
-                            reply_text = "All systems optimal Sir! Standing by for your commands."
+                            reply_text = "Sir, Gemini AI limit reached or offline. Operating in offline predefined command mode! Please add a new API key in Settings."
                     except Exception as w_err:
                         print(f"[Offline Wiki Search Fail] {w_err}")
-                        reply_text = "All systems optimal Sir! Standing by for your commands."
+                        reply_text = "Sir, Gemini AI limit reached or offline. Operating in offline predefined command mode! Please add a new API key in Settings."
 
         # Record context & assistant reply
         session["context"].append({"role": "user", "content": user_msg})
