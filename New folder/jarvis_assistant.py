@@ -634,7 +634,10 @@ class JarvisBrain:
                                     pass
 
                         if wiki_summary and len(wiki_summary.strip()) > 20:
-                            resp_str = f"According to Wikipedia:\n{wiki_summary}"
+                            if self.api_status == "offline":
+                                resp_str = f"⚠️ [Notice: Gemini AI limit reached on live models. Operating in Offline Knowledge Engine]\n\nAccording to Wikipedia:\n{wiki_summary}"
+                            else:
+                                resp_str = f"According to Wikipedia:\n{wiki_summary}"
                         else:
                             resp_str = "Sir, Gemini AI limit reached or offline. Operating in offline predefined command mode! Please add a new API key in Settings."
                         self.conversation_context.append({"role": "user", "content": raw_text})

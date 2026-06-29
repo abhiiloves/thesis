@@ -531,7 +531,10 @@ async def process_chat(req: ChatRequest):
                                     pass
 
                         if wiki_summary and len(wiki_summary.strip()) > 20:
-                            reply_text = f"According to Wikipedia:\n{wiki_summary}"
+                            if api_status == "offline":
+                                reply_text = f"⚠️ [Notice: Gemini AI limit reached on live models. Operating in Offline Knowledge Engine]\n\nAccording to Wikipedia:\n{wiki_summary}"
+                            else:
+                                reply_text = f"According to Wikipedia:\n{wiki_summary}"
                         else:
                             reply_text = "Sir, Gemini AI limit reached or offline. Operating in offline predefined command mode! Please add a new API key in Settings."
                     except Exception as w_err:
