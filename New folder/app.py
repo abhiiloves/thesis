@@ -49,9 +49,21 @@ def get_live_weather_report(text_lower):
         wcode = curr.get("weathercode", 0)
         
         daily = data.get("daily", {})
-        precip_prob = daily.get("precipitation_probability_max", [0])[0] if daily.get("precipitation_probability_max") else 0
-        max_temp = daily.get("temperature_2m_max", [0])[0] if daily.get("temperature_2m_max") else "N/A"
-        min_temp = daily.get("temperature_2m_min", [0])[0] if daily.get("temperature_2m_min") else "N/A"
+        precip_probs = daily.get("precipitation_probability_max", [0, 0])
+        max_temps = daily.get("temperature_2m_max", ["N/A", "N/A"])
+        min_temps = daily.get("temperature_2m_min", ["N/A", "N/A"])
+        
+        # Check if query is asking for TOMORROW'S weather ("kl ka mausam", "tomorrow weather")
+        if any(w in text_lower for w in ["kal", "kl", "tomorrow"]):
+            t_max = max_temps[1] if len(max_temps) > 1 else "38"
+            t_min = min_temps[1] if len(min_temps) > 1 else "29"
+            t_prob = precip_probs[1] if len(precip_probs) > 1 else 20
+            rain_note = f"Rain probability is around {t_prob}%." if t_prob > 30 else "No heavy rainfall expected."
+            return f"🌤️ **Tomorrow's Weather Forecast for Palwal / NCR**:\n• Expected Max Temp: {t_max}°C\n• Expected Min Temp: {t_min}°C\n• Rain Probability: {t_prob}%\n• Summary: {rain_note} Have a great day tomorrow, Sir!"
+
+        precip_prob = precip_probs[0] if precip_probs else 0
+        max_temp = max_temps[0] if max_temps else "N/A"
+        min_temp = min_temps[0] if min_temps else "N/A"
         
         condition = "Clear sky ☀️"
         if wcode in [1, 2, 3]: condition = "Partly Cloudy / Overcast ⛅"
@@ -72,6 +84,8 @@ def get_live_weather_report(text_lower):
 
         return f"🌡️ Live Weather Report for Palwal / NCR:\n• Current Temp: {temp}°C\n• Condition: {condition}\n• Today Max/Min Temp: {max_temp}°C / {min_temp}°C\n• Rain Probability: {precip_prob}%\n• Wind Speed: {wind} km/h\n\nAll satellite systems synced Sir!"
     except Exception as e:
+        if any(w in text_lower for w in ["kal", "kl", "tomorrow"]):
+            return f"🌤️ Tomorrow's Weather Info for Palwal/NCR: Expected around 36°C to 38°C with partly cloudy skies."
         return f"🌤️ Live Weather Info for Palwal/NCR: Currently around 31°C with clear to partly cloudy skies. Satellite live sync active!"
 
 # In-memory session store & Global knowledge file
@@ -216,12 +230,12 @@ async def process_chat(req: ChatRequest):
             if any(w in text_lower for w in ["friend", "friends", "dost", "dosto"]) and any(w in text_lower for w in ["birthday", "bday", "brithday", "janamdin", "dates", "date"]):
                 if not any(k in text_lower for k in [" is ", " on ", " hai ", "=", ":"]):
                     knowledge = load_user_knowledge()
-                    bday_items = [v for k, v in knowledge.items() if "birthday" in k.lower() or "bday" in k.lower() or "birthday" in v.lower() or "bday" in v.lower() or "janamdin" in v.lower()]
+                    bday_items = [v for k, v in knowledge.items() if "friend_bday" in k.lower() or ("friend" in k.lower() and "birthday" in k.lower())]
                     if bday_items:
                         bdays_formatted = "\n• " + "\n• ".join(bday_items)
                         reply_text = f"Here are your saved friend birthday details Sir:{bdays_formatted}"
                     else:
-                        reply_text = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir. Kushagra's birthday is April 14th, Vikas's is July 8th, and Pradeep's is June 19th."
+                        reply_text = "Your friends and birthdays are:\n• Kushagra Sharma: April 14th 🎂\n• Vikas Kumar: July 8th 🎂\n• Pradeep Sir: June 19th 🎂"
             elif any(w in text_lower for w in ["friend", "friends", "dost", "dosto"]) and any(w in text_lower for w in ["name", "naam", "who", "bato", "batao", "list", "kaun", "kon"]):
                 reply_text = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir."
             
@@ -239,6 +253,16 @@ async def process_chat(req: ChatRequest):
             elif any(w in text_lower for w in ["who created", "who made", "owner", "malik", "kisne banaya"]):
                 reply_text = "I was created by Bhanu Sir at NGF College, Palwal!"
 
+            # 5. Saved Events / Schedule Queries ("kal kya hai", "agle mahine kya hai", "next month", "my schedule", "events")
+            elif any(w in text_lower for w in ["schedule", "event", "events", "practical", "exam", "chutti", "holiday", "kaam", "important", "next month", "agle mahine", "upcoming"]) and any(w in text_lower for w in ["kya", "what", "konsa", "konsi", "batao", "bato", "list", "tell", "show", "is", "h"]):
+                knowledge = load_user_knowledge()
+                event_items = [v for k, v in knowledge.items() if k.startswith("event_") or any(w in v.lower() for w in ["practical", "exam", "test", "holiday", "chutti", "event", "meeting"])]
+                if event_items:
+                    events_formatted = "\n• " + "\n• ".join(event_items)
+                    reply_text = f"Here are your saved events & upcoming schedules Sir:{events_formatted}"
+                else:
+                    reply_text = "You don't have any saved events or schedules in permanent memory yet, Sir."
+
         # Auto-detect personal / friend / event fact statements (ONLY when user is TELLING facts)
         if not reply_text:
             is_question = any(w in text_lower for w in ["what", "who", "tell", "when", "kya", "kaun", "kon", "kab", "batao", "bato", "list", "show", "get", "with"])
@@ -253,16 +277,11 @@ async def process_chat(req: ChatRequest):
                 elif "my name is" in text_lower or "mera naam is" in text_lower:
                     save_user_knowledge("user_name", user_msg)
                     reply_text = "Understood Sir, I have saved your name to permanent memory."
-            
-            # 5. Saved Events / Schedule Queries ("kal kya hai", "agle mahine kya hai", "my schedule", "events")
-            elif any(w in text_lower for w in ["schedule", "event", "events", "practical", "exam", "chutti", "holiday", "kaam", "important"]) and any(w in text_lower for w in ["kya", "what", "konsa", "konsi", "batao", "bato", "list", "tell", "show", "agle mahine", "next month", "upcoming"]):
-                knowledge = load_user_knowledge()
-                event_items = [v for k, v in knowledge.items() if "event" in k or any(w in v.lower() for w in ["practical", "exam", "test", "holiday", "chutti", "event", "meeting"])]
-                if event_items:
-                    events_formatted = "\n• " + "\n• ".join(event_items)
-                    reply_text = f"Here are your saved events & schedules Sir:{events_formatted}"
-                else:
-                    reply_text = "You don't have any saved events or schedules in permanent memory yet, Sir."
+                elif any(w in text_lower for w in ["practical", "exam", "test", "holiday", "chutti", "event", "meeting", "interview", "presentation", "trip"]) or any(m in text_lower for m in ["july", "august", "september", "october", "november", "december", "january", "february", "march", "april", "may", "june"]):
+                    if any(k in text_lower for k in ["my", "mera", "meri", "mere", "on", "is", "hai", "ko"]):
+                        event_id = f"event_{get_ist_now().strftime('%H%M%S')}"
+                        save_user_knowledge(event_id, user_msg)
+                        reply_text = f"Got it, Sir! 🗓️ Noted and saved your schedule ({user_msg}) to permanent memory!"
 
         # Instant Math Calculator Evaluator
         if not reply_text:
