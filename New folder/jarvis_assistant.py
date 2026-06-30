@@ -558,7 +558,14 @@ class JarvisBrain:
                 for e in matched_events:
                     d_obj = datetime.datetime.strptime(e["date"], "%Y-%m-%d")
                     formatted_d = d_obj.strftime("%d %B %Y")
-                    out_lines.append(f"{formatted_d}: {e['title']}")
+                    e_type = e.get("type", "event")
+                    type_label = "Event 📅"
+                    if e_type == "birthday": type_label = "Birthday 🎂"
+                    elif e_type == "holiday": type_label = "Holiday 🏖️"
+                    elif e_type == "practical": type_label = "Practical Exam 📚"
+                    elif e_type == "exam": type_label = "Exam 📝"
+                    
+                    out_lines.append(f"{formatted_d}: [{type_label}] {e['title']}")
                 out_msg = f"Here are your schedules for {filter_type} Sir:\n• " + "\n• ".join(out_lines)
             else:
                 legacy_events = [v for k, v in load_user_knowledge().items() if k.startswith("event_")]
