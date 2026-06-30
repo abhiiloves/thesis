@@ -115,88 +115,60 @@ def extract_date_events(text_lower, raw_text):
     year = now.year
     events = []
     
-    # 1. Check relative days first
-    # "kl" / "kal" / "tomorrow"
-    if any(w in text_lower for w in ["tomorrow", "kal", "kl"]):
-        tomorrow_date = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-        evt_type = "event"
-        title = raw_text
-        if "holiday" in text_lower or "chutti" in text_lower:
-            evt_type = "holiday"
-            title = "Holiday 🏖️"
-        elif "practical" in text_lower or "pratical" in text_lower:
-            evt_type = "practical"
-            title = "Practical Exam 📚"
-        elif "exam" in text_lower:
-            evt_type = "exam"
-            title = "Exam 📝"
-            
-        events.append({
-            "date": tomorrow_date,
-            "title": title,
-            "type": evt_type
-        })
-        
-    # 2. Check month and day patterns
-    months_map = {
-        "jan": 1, "january": 1,
-        "feb": 2, "february": 2,
-        "mar": 3, "march": 3,
-        "apr": 4, "april": 4,
-        "may": 5,
-        "jun": 6, "june": 6,
-        "jul": 7, "july": 7,
-        "aug": 8, "august": 8,
-        "sep": 9, "september": 9,
-        "oct": 10, "october": 10,
-        "nov": 11, "november": 11,
-        "dec": 12, "december": 12
-    }
+    # Split text by coordinator words
+    segments = re.split(r'\b(?:and|or|but|then|also|aur|ya)\b|[,;&]', text_lower)
+    raw_segments = re.split(r'\b(?:and|or|but|then|also|aur|ya)\b|[,;&]', raw_text, flags=re.IGNORECASE)
     
-    found_specific = False
-    for m_name, m_num in months_map.items():
-        pat1 = r'\b(\d{1,2})(?:st|nd|rd|th)?\s+' + re.escape(m_name) + r'\b'
-        pat2 = r'\b' + re.escape(m_name) + r'\s+(\d{1,2})(?:st|nd|rd|th)?\b'
+    months_map = {
+        "jan": 1, "january": 1, "feb": 2, "february": 2, "mar": 3, "march": 3,
+        "apr": 4, "april": 4, "may": 5, "jun": 6, "june": 6, "jul": 7, "july": 7,
+        "aug": 8, "august": 8, "sep": 9, "september": 9, "oct": 10, "october": 10,
+        "nov": 11, "november": 11, "dec": 12, "december": 12
+    }
+
+    for i, seg in enumerate(segments):
+        seg_clean = seg.strip()
+        if not seg_clean:
+            continue
+        raw_seg = raw_segments[i].strip()
         
-        for pat in [pat1, pat2]:
-            matches = re.findall(pat, text_lower)
-            for m in matches:
-                day = int(m)
-                event_date = f"{year}-{m_num:02d}-{day:02d}"
-                
-                title = "Event"
-                evt_type = "event"
-                if "kushagra" in text_lower:
-                    title = "Kushagra's Birthday 🎂"
-                    evt_type = "birthday"
-                elif "vikas" in text_lower:
-                    title = "Vikas Kumar's Birthday 🎂"
-                    evt_type = "birthday"
-                elif "pradeep" in text_lower:
-                    title = "Pradeep Sir's Birthday 🎂"
-                    evt_type = "birthday"
-                elif "practical" in text_lower or "pratical" in text_lower:
-                    title = "Practical Exam 📚"
-                    evt_type = "practical"
-                elif "holiday" in text_lower or "chutti" in text_lower:
-                    title = "Holiday 🏖️"
-                    evt_type = "holiday"
-                else:
-                    title = raw_text
-                
-                events.append({
-                    "date": event_date,
-                    "title": title,
-                    "type": evt_type
-                })
-                found_specific = True
-                
-    # 3. Match dates without months specified (e.g. "6 date ko", "8 ko")
-    if not found_specific:
+        seg_events = []
+        
+        # Find relative days
+        if any(w in seg_clean for w in ["tomorrow", "kal", "kl"]):
+            tomorrow_date = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+            pos = -1
+            match_w = ""
+            for w in ["tomorrow", "kal", "kl"]:
+                p = seg_clean.find(w)
+                if p != -1:
+                    pos = p
+                    match_w = w
+                    break
+            seg_events.append({
+                "date": tomorrow_date,
+                "start": pos,
+                "end": pos + len(match_w)
+            })
+            
+        # Find month patterns
+        for m_name, m_num in months_map.items():
+            pat1 = r'\b(\d{1,2})(?:st|nd|rd|th)?\s+' + re.escape(m_name) + r'\b'
+            pat2 = r'\b' + re.escape(m_name) + r'\s+(\d{1,2})(?:st|nd|rd|th)?\b'
+            for pat in [pat1, pat2]:
+                for m in re.finditer(pat, seg_clean):
+                    day = int(m.group(1))
+                    event_date = f"{year}-{m_num:02d}-{day:02d}"
+                    seg_events.append({
+                        "date": event_date,
+                        "start": m.start(),
+                        "end": m.end()
+                    })
+                    
+        # Find dates without months
         pat_num = r'\b(\d{1,2})(?:\s*(?:date|tarikh|tareekh|ko|date ko))\b'
-        matches = re.findall(pat_num, text_lower)
-        for m in matches:
-            day = int(m)
+        for m in re.finditer(pat_num, seg_clean):
+            day = int(m.group(1))
             m_num = now.month
             e_year = year
             if day <= now.day:
@@ -206,27 +178,64 @@ def extract_date_events(text_lower, raw_text):
                     e_year += 1
             event_date = f"{e_year}-{m_num:02d}-{day:02d}"
             
-            title = "Event"
+            if not any(se["date"] == event_date for se in seg_events):
+                seg_events.append({
+                    "date": event_date,
+                    "start": m.start(),
+                    "end": m.end()
+                })
+                
+        if not seg_events:
+            continue
+            
+        # Sort events by starting index
+        seg_events.sort(key=lambda x: x["start"])
+        
+        # Process and build substrings
+        for j, ev in enumerate(seg_events):
+            start_boundary = 0 if j == 0 else ev["start"]
+            end_boundary = len(raw_seg) if j == len(seg_events) - 1 else seg_events[j+1]["start"]
+            
+            part1 = raw_seg[start_boundary:ev["start"]]
+            part2 = raw_seg[ev["end"]:end_boundary]
+            sub_raw = (part1 + part2).strip()
+            sub_clean = sub_raw.lower()
+            
             evt_type = "event"
-            if "practical" in text_lower or "pratical" in text_lower:
-                title = "Practical Exam 📚"
+            if any(w in sub_clean for w in ["birthday", "bday", "janamdin"]):
+                evt_type = "birthday"
+            elif any(w in sub_clean for w in ["practical", "pratical"]):
                 evt_type = "practical"
-            elif "holiday" in text_lower or "chutti" in text_lower:
-                title = "Holiday 🏖️"
-                evt_type = "holiday"
-            elif "exam" in text_lower:
-                title = "Exam 📝"
+            elif any(w in sub_clean for w in ["exam", "test"]):
                 evt_type = "exam"
+            elif any(w in sub_clean for w in ["holiday", "chutti"]):
+                evt_type = "holiday"
             else:
-                title = raw_text
+                if any(w in seg_clean for w in ["birthday", "bday", "janamdin"]) or any(w in text_lower for w in ["birthday", "bday", "janamdin"]):
+                    if not any(w in seg_clean for w in ["practical", "pratical", "exam", "holiday", "chutti"]):
+                        evt_type = "birthday"
+                elif any(w in seg_clean for w in ["practical", "pratical"]) or any(w in text_lower for w in ["practical", "pratical"]):
+                    if not any(w in seg_clean for w in ["birthday", "bday", "holiday", "chutti"]):
+                        evt_type = "practical"
+                        
+            # Clean up title
+            clean_title = sub_raw
+            clean_title = re.sub(pat_num, '', clean_title, flags=re.IGNORECASE)
+            for m_name in months_map.keys():
+                clean_title = re.sub(r'\b' + re.escape(m_name) + r'\b', '', clean_title, flags=re.IGNORECASE)
+            clean_title = re.sub(r'\b(kl|kal|tomorrow|today|aaj|ko|h|hai|on|is|or|and)\b', '', clean_title, flags=re.IGNORECASE)
+            clean_title = re.sub(r'\s+', ' ', clean_title).strip()
+            
+            if not clean_title:
+                clean_title = "Event"
+            else:
+                clean_title = clean_title[0].upper() + clean_title[1:]
                 
             events.append({
-                "date": event_date,
-                "title": title,
+                "date": ev["date"],
+                "title": clean_title,
                 "type": evt_type
             })
-            
-    return events
 
 # Setup Gemini AI Client
 API_KEY = os.environ.get("GEMINI_API_KEY", "")
@@ -351,48 +360,16 @@ async def get_calendar_events():
         if k.startswith("cal_event_") and isinstance(v, dict):
             events.append(v)
             
-    # 2. Parse text birthday/event items on-the-fly
-    now = get_ist_now()
-    year = now.year
-    months_map = {
-        "jan": 1, "january": 1, "feb": 2, "february": 2, "mar": 3, "march": 3,
-        "apr": 4, "april": 4, "may": 5, "jun": 6, "june": 6, "jul": 7, "july": 7,
-        "aug": 8, "august": 8, "sep": 9, "september": 9, "oct": 10, "october": 10,
-        "nov": 11, "november": 11, "dec": 12, "december": 12
-    }
-    
+    # 2. Parse text birthday/event items on-the-fly using the unified parsing engine
     for k, v in knowledge.items():
         if (k.startswith("friend_bday") or "friend" in k.lower() or "birthday" in k.lower() or k.startswith("event_")) and isinstance(v, str):
-            v_lower = v.lower()
-            for m_name, m_num in months_map.items():
-                pat1 = r'\b(\d{1,2})(?:st|nd|rd|th)?\s+' + re.escape(m_name) + r'\b'
-                pat2 = r'\b' + re.escape(m_name) + r'\s+(\d{1,2})(?:st|nd|rd|th)?\b'
-                for pat in [pat1, pat2]:
-                    matches = re.findall(pat, v_lower)
-                    for m in matches:
-                        day = int(m)
-                        event_date = f"{year}-{m_num:02d}-{day:02d}"
-                        title = v
-                        evt_type = "birthday" if "birthday" in k.lower() or "bday" in k.lower() or "birthday" in v_lower or "bday" in v_lower else "event"
-                        if "kushagra" in v_lower:
-                            title = "Kushagra's Birthday 🎂"
-                        elif "vikas" in v_lower:
-                            title = "Vikas Kumar's Birthday 🎂"
-                        elif "pradeep" in v_lower:
-                            title = "Pradeep Sir's Birthday 🎂"
-                        elif "practical" in v_lower or "pratical" in v_lower:
-                            title = "Practical Exam 📚"
-                            evt_type = "practical"
-                        elif "holiday" in v_lower or "chutti" in v_lower:
-                            title = "Holiday 🏖️"
-                            evt_type = "holiday"
-                        
-                        if not any(e["date"] == event_date and e["title"] == title for e in events):
-                            events.append({
-                                "date": event_date,
-                                "title": title,
-                                "type": evt_type
-                            })
+            try:
+                extracted = extract_date_events(v.lower(), v)
+                for ev in extracted:
+                    if not any(e["date"] == ev["date"] and e["title"] == ev["title"] for e in events):
+                        events.append(ev)
+            except Exception as e:
+                print(f"[On-the-fly Calendar Extract Error] {e}")
                             
     events.sort(key=lambda x: x.get("date", ""))
     return events
