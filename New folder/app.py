@@ -300,7 +300,7 @@ async def process_chat(req: ChatRequest):
                 reply_text = "I was created by Bhanu Sir at NGF College, Palwal!"
 
             # 5. Saved Events / Schedule Queries ("kal kya hai", "agle mahine kya hai", "next month", "my schedule", "events")
-            elif any(w in text_lower for w in ["schedule", "event", "events", "practical", "pratical", "exam", "chutti", "holiday", "kaam", "important", "next month", "agle mahine", "upcoming"]) and any(w in text_lower for w in ["kya", "what", "konsa", "konsi", "batao", "bato", "list", "tell", "show", "is", "h"]):
+            elif any(w in text_lower for w in ["schedule", "event", "events", "practical", "pratical", "exam", "chutti", "holiday", "kaam", "important", "next month", "agle mahine", "upcoming", "planning"]) or (any(w in text_lower for w in ["kl kya", "kal kya"]) and not "mausam" in text_lower):
                 knowledge = load_user_knowledge()
                 event_items = [v for k, v in knowledge.items() if k.startswith("event_")]
                 out_msg = "Here are your saved events & upcoming schedules Sir:"

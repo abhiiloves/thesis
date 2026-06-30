@@ -354,16 +354,16 @@ class JarvisBrain:
             self.conversation_context.append({"role": "user", "content": raw_text})
             self.conversation_context.append({"role": "assistant", "content": resp_str})
             return resp_str
-        elif any(w in text for w in ["schedule", "event", "events", "practical", "pratical", "exam", "chutti", "holiday", "kaam", "important", "next month", "agle mahine", "upcoming"]) and any(w in text for w in ["kya", "what", "konsa", "konsi", "batao", "bato", "list", "tell", "show", "is", "h"]):
+        elif any(w in text for w in ["schedule", "event", "events", "practical", "pratical", "exam", "chutti", "holiday", "kaam", "important", "next month", "agle mahine", "upcoming", "planning"]) or (any(w in text for w in ["kl kya", "kal kya"]) and not "mausam" in text):
             knowledge = load_user_knowledge()
-            event_items = [v for k, v in knowledge.items() if k.startswith("event_")]
+            event_items = [v for k, v in knowledge.items() if k.startswith("event_") or any(w in v.lower() for w in ["practical", "exam", "test", "holiday", "chutti", "event", "meeting"])]
             out_msg = "Here are your saved events & upcoming schedules Sir:"
             if event_items:
                 out_msg += "\n• " + "\n• ".join(event_items)
             else:
                 out_msg += "\n• 6th July: Practical Exam 📚\n• 8th July: Vikas Kumar's Birthday 🎂"
             self.conversation_context.append({"role": "user", "content": raw_text})
-            self.conversation_context.append({"role": "assistant", "content": resp_str if 'resp_str' in locals() else out_msg})
+            self.conversation_context.append({"role": "assistant", "content": out_msg})
             return out_msg
         elif any(w in text for w in ["friend", "friends", "dost", "dosto"]) and any(w in text for w in ["name", "naam", "who", "bato", "batao", "list", "kaun", "kon"]):
             resp_str = "Your friends are Kushagra Sharma, Vikas Kumar, and Pradeep Sir."
@@ -371,23 +371,12 @@ class JarvisBrain:
             self.conversation_context.append({"role": "assistant", "content": resp_str})
             return resp_str
         elif any(w in text for w in ["mera naam", "my name"]) and any(w in text for w in ["kya", "what", "batao", "bato", "tell"]):
-            resp_str = "Your name is Abhii Abhishek Sir!"
+            resp_str = "Your name is Bhanu (Abhii Abhishek) Sir!"
             self.conversation_context.append({"role": "user", "content": raw_text})
             self.conversation_context.append({"role": "assistant", "content": resp_str})
             return resp_str
         elif any(w in text for w in ["who created", "who made", "owner", "malik", "kisne banaya"]):
-            resp_str = "I was created by Abhii Abhishek at NGF College, Palwal Sir!"
-            self.conversation_context.append({"role": "user", "content": raw_text})
-            self.conversation_context.append({"role": "assistant", "content": resp_str})
-            return resp_str
-        elif any(w in text for w in ["schedule", "event", "events", "practical", "exam", "chutti", "holiday", "kaam", "important"]) and any(w in text for w in ["kya", "what", "konsa", "konsi", "batao", "bato", "list", "tell", "show", "agle mahine", "next month", "upcoming"]):
-            knowledge = load_user_knowledge()
-            event_items = [v for k, v in knowledge.items() if "event" in k or any(w in v.lower() for w in ["practical", "exam", "test", "holiday", "chutti", "event", "meeting"])]
-            if event_items:
-                events_formatted = "\n• " + "\n• ".join(event_items)
-                resp_str = f"Here are your saved events & schedules Sir:{events_formatted}"
-            else:
-                resp_str = "You don't have any saved events or schedules in permanent memory yet, Sir."
+            resp_str = "I was created by Bhanu Sir at NGF College, Palwal!"
             self.conversation_context.append({"role": "user", "content": raw_text})
             self.conversation_context.append({"role": "assistant", "content": resp_str})
             return resp_str
