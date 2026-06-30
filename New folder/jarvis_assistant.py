@@ -19,6 +19,177 @@ IST_TZ = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
 def get_ist_now():
     return datetime.datetime.now(IST_TZ)
 
+def extract_date_events(text_lower, raw_text):
+    now = get_ist_now()
+    year = now.year
+    events = []
+    
+    # 1. Check relative days first
+    # "kl" / "kal" / "tomorrow"
+    if any(w in text_lower for w in ["tomorrow", "kal", "kl"]):
+        tomorrow_date = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+        evt_type = "event"
+        title = raw_text
+        if "holiday" in text_lower or "chutti" in text_lower:
+            evt_type = "holiday"
+            title = "Holiday 🏖️"
+        elif "practical" in text_lower or "pratical" in text_lower:
+            evt_type = "practical"
+            title = "Practical Exam 📚"
+        elif "exam" in text_lower:
+            evt_type = "exam"
+            title = "Exam 📝"
+            
+        events.append({
+            "date": tomorrow_date,
+            "title": title,
+            "type": evt_type
+        })
+        
+    # 2. Check month and day patterns
+    months_map = {
+        "jan": 1, "january": 1,
+        "feb": 2, "february": 2,
+        "mar": 3, "march": 3,
+        "apr": 4, "april": 4,
+        "may": 5,
+        "jun": 6, "june": 6,
+        "jul": 7, "july": 7,
+        "aug": 8, "august": 8,
+        "sep": 9, "september": 9,
+        "oct": 10, "october": 10,
+        "nov": 11, "november": 11,
+        "dec": 12, "december": 12
+    }
+    
+    found_specific = False
+    for m_name, m_num in months_map.items():
+        pat1 = r'\b(\d{1,2})(?:st|nd|rd|th)?\s+' + re.escape(m_name) + r'\b'
+        pat2 = r'\b' + re.escape(m_name) + r'\s+(\d{1,2})(?:st|nd|rd|th)?\b'
+        
+        for pat in [pat1, pat2]:
+            matches = re.findall(pat, text_lower)
+            for m in matches:
+                day = int(m)
+                event_date = f"{year}-{m_num:02d}-{day:02d}"
+                
+                title = "Event"
+                evt_type = "event"
+                if "kushagra" in text_lower:
+                    title = "Kushagra's Birthday 🎂"
+                    evt_type = "birthday"
+                elif "vikas" in text_lower:
+                    title = "Vikas Kumar's Birthday 🎂"
+                    evt_type = "birthday"
+                elif "pradeep" in text_lower:
+                    title = "Pradeep Sir's Birthday 🎂"
+                    evt_type = "birthday"
+                elif "practical" in text_lower or "pratical" in text_lower:
+                    title = "Practical Exam 📚"
+                    evt_type = "practical"
+                elif "holiday" in text_lower or "chutti" in text_lower:
+                    title = "Holiday 🏖️"
+                    evt_type = "holiday"
+                else:
+                    title = raw_text
+                
+                events.append({
+                    "date": event_date,
+                    "title": title,
+                    "type": evt_type
+                })
+                found_specific = True
+                
+    # 3. Match dates without months specified (e.g. "6 date ko", "8 ko")
+    if not found_specific:
+        pat_num = r'\b(\d{1,2})(?:\s*(?:date|tarikh|tareekh|ko|date ko))\b'
+        matches = re.findall(pat_num, text_lower)
+        for m in matches:
+            day = int(m)
+            m_num = now.month
+            e_year = year
+            if day <= now.day:
+                m_num += 1
+                if m_num > 12:
+                    m_num = 1
+                    e_year += 1
+            event_date = f"{e_year}-{m_num:02d}-{day:02d}"
+            
+            title = "Event"
+            evt_type = "event"
+            if "practical" in text_lower or "pratical" in text_lower:
+                title = "Practical Exam 📚"
+                evt_type = "practical"
+            elif "holiday" in text_lower or "chutti" in text_lower:
+                title = "Holiday 🏖️"
+                evt_type = "holiday"
+            elif "exam" in text_lower:
+                title = "Exam 📝"
+                evt_type = "exam"
+            else:
+                title = raw_text
+                
+            events.append({
+                "date": event_date,
+                "title": title,
+                "type": evt_type
+            })
+            
+    return events
+
+def get_desktop_calendar_events():
+    knowledge = load_user_knowledge()
+    events = []
+    
+    for k, v in knowledge.items():
+        if k.startswith("cal_event_") and isinstance(v, dict):
+            events.append(v)
+            
+    now = get_ist_now()
+    year = now.year
+    months_map = {
+        "jan": 1, "january": 1, "feb": 2, "february": 2, "mar": 3, "march": 3,
+        "apr": 4, "april": 4, "may": 5, "jun": 6, "june": 6, "jul": 7, "july": 7,
+        "aug": 8, "august": 8, "sep": 9, "september": 9, "oct": 10, "october": 10,
+        "nov": 11, "november": 11, "dec": 12, "december": 12
+    }
+    
+    for k, v in knowledge.items():
+        if (k.startswith("friend_bday") or "friend" in k.lower() or "birthday" in k.lower() or k.startswith("event_")) and isinstance(v, str):
+            v_lower = v.lower()
+            for m_name, m_num in months_map.items():
+                pat1 = r'\b(\d{1,2})(?:st|nd|rd|th)?\s+' + re.escape(m_name) + r'\b'
+                pat2 = r'\b' + re.escape(m_name) + r'\s+(\d{1,2})(?:st|nd|rd|th)?\b'
+                for pat in [pat1, pat2]:
+                    matches = re.findall(pat, v_lower)
+                    for m in matches:
+                        day = int(m)
+                        event_date = f"{year}-{m_num:02d}-{day:02d}"
+                        title = v
+                        evt_type = "birthday" if "birthday" in k.lower() or "bday" in k.lower() or "birthday" in v_lower or "bday" in v_lower else "event"
+                        if "kushagra" in v_lower:
+                            title = "Kushagra's Birthday 🎂"
+                        elif "vikas" in v_lower:
+                            title = "Vikas Kumar's Birthday 🎂"
+                        elif "pradeep" in v_lower:
+                            title = "Pradeep Sir's Birthday 🎂"
+                        elif "practical" in v_lower or "pratical" in v_lower:
+                            title = "Practical Exam 📚"
+                            evt_type = "practical"
+                        elif "holiday" in v_lower or "chutti" in v_lower:
+                            title = "Holiday 🏖️"
+                            evt_type = "holiday"
+                        
+                        if not any(e["date"] == event_date and e["title"] == title for e in events):
+                            events.append({
+                                "date": event_date,
+                                "title": title,
+                                "type": evt_type
+                            })
+                            
+    events.sort(key=lambda x: x.get("date", ""))
+    return events
+
 def get_live_weather_report(text_lower):
     try:
         url = "https://api.open-meteo.com/v1/forecast?latitude=28.1471&longitude=77.3260&current_weather=true&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max&timezone=Asia%2FKolkata"
@@ -297,35 +468,36 @@ class JarvisBrain:
         is_query = any(w in text for w in ["kya", "what", "konsa", "konsi", "batao", "bato", "list", "tell", "show", "who", "when", "kab", "kaun", "kon"])
         
         if not is_query:
+            resp_str = None
             # A. Friend Birthday Statements (HIGHEST PRIORITY)
             if any(w in text for w in ["birthday", "bday", "janamdin"]):
                 if any(w in text for w in ["friend", "friends", "dost", "dosto", "kushagra", "vikas", "pradeep", "on", "is", "hai", "=", ":"]):
                     save_user_knowledge(f"friend_bday_{get_ist_now().strftime('%H%M%S')}", raw_text)
                     resp_str = "Understood Sir, I have saved your friend's birthday details to permanent memory!"
-                    self.conversation_context.append({"role": "user", "content": raw_text})
-                    self.conversation_context.append({"role": "assistant", "content": resp_str})
-                    return resp_str
             elif "my birthday is" in text or "my bday is" in text or "mera birthday" in text:
                 save_user_knowledge("user_birthday", raw_text)
                 resp_str = "Understood Sir, I have saved your birthday to permanent memory."
-                self.conversation_context.append({"role": "user", "content": raw_text})
-                self.conversation_context.append({"role": "assistant", "content": resp_str})
-                return resp_str
             elif "my name is" in text or "mera naam is" in text:
                 save_user_knowledge("user_name", raw_text)
                 resp_str = "Understood Sir, I have saved your name to permanent memory."
-                self.conversation_context.append({"role": "user", "content": raw_text})
-                self.conversation_context.append({"role": "assistant", "content": resp_str})
-                return resp_str
             # B. Schedule & Exam Statements (ONLY if not a birthday!)
             elif any(w in text for w in ["practical", "pratical", "exam", "test", "holiday", "chutti", "event", "meeting", "interview", "presentation", "trip"]):
                 if any(k in text for k in ["my", "mera", "meri", "mere", "on", "is", "hai", "ko", "kl", "kal"]):
                     event_id = f"event_{get_ist_now().strftime('%H%M%S')}"
                     save_user_knowledge(event_id, raw_text)
                     resp_str = f"Got it, Sir! 🗓️ Noted and saved your schedule ({raw_text}) to permanent memory!"
-                    self.conversation_context.append({"role": "user", "content": raw_text})
-                    self.conversation_context.append({"role": "assistant", "content": resp_str})
-                    return resp_str
+
+            # Auto-extract calendar events when saved
+            if resp_str:
+                try:
+                    extracted = extract_date_events(text, raw_text)
+                    for idx, ev in enumerate(extracted):
+                        save_user_knowledge(f"cal_event_{get_ist_now().strftime('%Y%m%d_%H%M%S')}_{idx}", ev)
+                except Exception as ex_err:
+                    print(f"[Calendar Auto-Extract Error] {ex_err}")
+                self.conversation_context.append({"role": "user", "content": raw_text})
+                self.conversation_context.append({"role": "assistant", "content": resp_str})
+                return resp_str
 
         # Flexible Query Detection (Comprehensive Offline Intent Matcher)
         if any(w in text for w in ["friend", "friends", "dost", "dosto"]) and any(w in text for w in ["birthday", "bday", "brithday", "janamdin", "dates", "date"]):
@@ -355,13 +527,45 @@ class JarvisBrain:
             self.conversation_context.append({"role": "assistant", "content": resp_str})
             return resp_str
         elif any(w in text for w in ["schedule", "event", "events", "practical", "pratical", "exam", "chutti", "holiday", "kaam", "important", "next month", "agle mahine", "upcoming", "planning"]) or (any(w in text for w in ["kl kya", "kal kya"]) and not "mausam" in text):
-            knowledge = load_user_knowledge()
-            event_items = [v for k, v in knowledge.items() if k.startswith("event_") or any(w in v.lower() for w in ["practical", "exam", "test", "holiday", "chutti", "event", "meeting"])]
-            out_msg = "Here are your saved events & upcoming schedules Sir:"
-            if event_items:
-                out_msg += "\n• " + "\n• ".join(event_items)
+            all_events = get_desktop_calendar_events()
+            now = get_ist_now()
+            matched_events = []
+            filter_type = "upcoming"
+            
+            if any(w in text for w in ["next month", "agle mahine"]):
+                filter_type = "next month"
+                next_month_num = now.month + 1
+                next_month_year = now.year
+                if next_month_num > 12:
+                    next_month_num = 1
+                    next_month_year += 1
+                target_prefix = f"{next_month_year}-{next_month_num:02d}"
+                matched_events = [e for e in all_events if e.get("date", "").startswith(target_prefix)]
+            elif any(w in text for w in ["this month", "iss mahine", "is mahine"]):
+                filter_type = "this month"
+                target_prefix = now.strftime("%Y-%m")
+                matched_events = [e for e in all_events if e.get("date", "").startswith(target_prefix)]
+            elif any(w in text for w in ["tomorrow", "kal", "kl"]):
+                filter_type = "tomorrow"
+                tomorrow_str = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+                matched_events = [e for e in all_events if e.get("date", "") == tomorrow_str]
             else:
-                out_msg += "\n• 6th July: Practical Exam 📚\n• 8th July: Vikas Kumar's Birthday 🎂"
+                today_str = now.strftime("%Y-%m-%d")
+                matched_events = [e for e in all_events if e.get("date", "") >= today_str]
+            
+            if matched_events:
+                out_lines = []
+                for e in matched_events:
+                    d_obj = datetime.datetime.strptime(e["date"], "%Y-%m-%d")
+                    formatted_d = d_obj.strftime("%d %B %Y")
+                    out_lines.append(f"{formatted_d}: {e['title']}")
+                out_msg = f"Here are your schedules for {filter_type} Sir:\n• " + "\n• ".join(out_lines)
+            else:
+                legacy_events = [v for k, v in load_user_knowledge().items() if k.startswith("event_")]
+                if legacy_events:
+                    out_msg = f"Here are your schedules Sir:\n• " + "\n• ".join(legacy_events)
+                else:
+                    out_msg = f"You don't have any specific schedules saved for {filter_type} Sir."
             self.conversation_context.append({"role": "user", "content": raw_text})
             self.conversation_context.append({"role": "assistant", "content": out_msg})
             return out_msg

@@ -477,6 +477,167 @@
             0%, 100% { box-shadow: 0 0 15px rgba(0, 240, 255, 0.3); }
             50% { box-shadow: 0 0 35px rgba(0, 240, 255, 0.7); }
         }
+
+        /* Calendar Panel Styling */
+        .calendar-panel {
+            width: 0;
+            background: #121318;
+            border-left: none;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.4s ease, border-left 0.4s ease;
+            overflow: hidden;
+        }
+        .calendar-panel.open {
+            width: 320px;
+            border-left: 1px solid #1E2029;
+        }
+        .calendar-container {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            height: 100%;
+            overflow-y: auto;
+        }
+        .calendar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #00F0FF;
+            font-weight: 700;
+        }
+        .calendar-nav-btn {
+            background: none;
+            border: none;
+            color: #00F0FF;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+            text-align: center;
+        }
+        .calendar-day-name {
+            font-size: 12px;
+            color: #64748B;
+            font-weight: 700;
+            padding-bottom: 6px;
+        }
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #CBD5E1;
+            background: rgba(255,255,255,0.02);
+            cursor: pointer;
+            position: relative;
+            transition: background 0.2s;
+        }
+        .calendar-day:hover {
+            background: rgba(0, 240, 255, 0.1);
+            color: #00F0FF;
+        }
+        .calendar-day.empty {
+            background: none;
+            cursor: default;
+        }
+        .calendar-day.today {
+            border: 1px solid #00F0FF;
+            font-weight: 700;
+        }
+        .event-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            position: absolute;
+            bottom: 4px;
+        }
+        .event-dot.birthday { background: #FF2E93; box-shadow: 0 0 8px #FF2E93; }
+        .event-dot.holiday { background: #25D366; box-shadow: 0 0 8px #25D366; }
+        .event-dot.practical { background: #EF4444; box-shadow: 0 0 8px #EF4444; }
+        .event-dot.exam { background: #F59E0B; box-shadow: 0 0 8px #F59E0B; }
+        .event-dot.event { background: #00F0FF; box-shadow: 0 0 8px #00F0FF; }
+        
+        .events-list-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .events-list-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64748B;
+        }
+        .events-list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+            max-height: 180px;
+        }
+        .event-item-card {
+            background: rgba(255,255,255,0.02);
+            border-left: 3px solid #00F0FF;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .event-item-card.birthday { border-left-color: #FF2E93; }
+        .event-item-card.holiday { border-left-color: #25D366; }
+        .event-item-card.practical { border-left-color: #EF4444; }
+        .event-item-card.exam { border-left-color: #F59E0B; }
+        
+        .event-item-date {
+            font-size: 11px;
+            color: #64748B;
+            margin-top: 2px;
+        }
+        .add-event-form {
+            background: rgba(255,255,255,0.02);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #1E2029;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .add-event-form h3 {
+            font-size: 13px;
+            color: #CBD5E1;
+        }
+        .add-event-input {
+            background: #0D0E12;
+            color: #FFF;
+            border: 1px solid #334155;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            outline: none;
+        }
+        .add-event-btn {
+            background: #00F0FF;
+            color: #000;
+            border: none;
+            padding: 8px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 12px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .add-event-btn:hover {
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
@@ -514,6 +675,7 @@
             <div class="header-controls">
                 <span id="statusBadge" class="badge-status online">🟢 AI Online</span>
                 <button class="btn-mute-toggle" id="quickMuteBtn" onclick="toggleQuickMute()">🔊 Sound ON</button>
+                <button class="btn-settings" onclick="toggleCalendarPanel()">🗓️ Calendar</button>
                 <button class="btn-settings" onclick="toggleModal(true)">⚙ Settings</button>
             </div>
         </div>
@@ -521,6 +683,50 @@
         <div class="input-container">
             <input type="text" id="userInput" class="chat-input" placeholder="Ask Jarvis anything..." onkeypress="handleKey(event)">
             <button class="btn-send" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <!-- Stark Calendar Panel -->
+    <div class="calendar-panel" id="calendarPanel">
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <button class="calendar-nav-btn" onclick="changeCalendarMonth(-1)">◀</button>
+                <span id="calMonthYear">July 2026</span>
+                <button class="calendar-nav-btn" onclick="changeCalendarMonth(1)">▶</button>
+            </div>
+            
+            <div class="calendar-grid" id="calendarGrid">
+                <!-- Day Names -->
+                <div class="calendar-day-name">Su</div>
+                <div class="calendar-day-name">Mo</div>
+                <div class="calendar-day-name">Tu</div>
+                <div class="calendar-day-name">We</div>
+                <div class="calendar-day-name">Th</div>
+                <div class="calendar-day-name">Fr</div>
+                <div class="calendar-day-name">Sa</div>
+                <!-- Days grid dynamically drawn -->
+            </div>
+
+            <div class="events-list-section">
+                <div class="events-list-title">Upcoming Schedules</div>
+                <div class="events-list-container" id="upcomingEventsList">
+                    <!-- Events loaded dynamically -->
+                </div>
+            </div>
+
+            <form class="add-event-form" onsubmit="submitManualEvent(event)">
+                <h3>➕ Add Custom Event</h3>
+                <input type="date" id="newEventDate" class="add-event-input" required>
+                <input type="text" id="newEventTitle" class="add-event-input" placeholder="Event Description..." required>
+                <select id="newEventType" class="add-event-input">
+                    <option value="event">General Event</option>
+                    <option value="birthday">Birthday 🎂</option>
+                    <option value="holiday">Holiday 🏖️</option>
+                    <option value="practical">Practical Exam 📚</option>
+                    <option value="exam">Exam 📝</option>
+                </select>
+                <button type="submit" class="add-event-btn">Save Event</button>
+            </form>
         </div>
     </div>
 
@@ -732,6 +938,9 @@
                     window.open(data.action_url, '_blank');
                 }
                 loadSessions();
+                if (document.getElementById('calendarPanel').classList.contains('open')) {
+                    loadCalendar();
+                }
             } catch (err) {
                 const indicator = document.getElementById('typingIndicator');
                 if (indicator) indicator.remove();
@@ -798,7 +1007,160 @@
             }
         }
 
-        window.onload = loadSessions;
+        // ==========================================
+        // Stark Calendar Widget Logic
+        // ==========================================
+        let currentCalMonth = new Date().getMonth();
+        let currentCalYear = new Date().getFullYear();
+        let calendarEvents = [];
+
+        function toggleCalendarPanel() {
+            const panel = document.getElementById('calendarPanel');
+            panel.classList.toggle('open');
+            if (panel.classList.contains('open')) {
+                loadCalendar();
+            }
+        }
+
+        async function loadCalendar() {
+            try {
+                const res = await fetch('/api/calendar');
+                if (res.ok) {
+                    calendarEvents = await res.json();
+                }
+            } catch (err) {
+                console.error("Failed to load calendar:", err);
+            }
+            renderCalendar();
+            renderUpcomingEvents();
+        }
+
+        function renderCalendar() {
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            document.getElementById('calMonthYear').innerText = `${monthNames[currentCalMonth]} ${currentCalYear}`;
+
+            const grid = document.getElementById('calendarGrid');
+            const dayNames = grid.querySelectorAll('.calendar-day-name');
+            grid.innerHTML = '';
+            dayNames.forEach(d => grid.appendChild(d));
+
+            const firstDayIndex = new Date(currentCalYear, currentCalMonth, 1).getDay();
+            const lastDay = new Date(currentCalYear, currentCalMonth + 1, 0).getDate();
+
+            for (let i = 0; i < firstDayIndex; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'calendar-day empty';
+                grid.appendChild(cell);
+            }
+
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+            for (let day = 1; day <= lastDay; day++) {
+                const cell = document.createElement('div');
+                cell.className = 'calendar-day';
+                cell.innerText = day;
+
+                const dateStr = `${currentCalYear}-${String(currentCalMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                
+                if (dateStr === todayStr) {
+                    cell.classList.add('today');
+                }
+
+                const dayEvents = calendarEvents.filter(e => e.date === dateStr);
+                if (dayEvents.length > 0) {
+                    const types = dayEvents.map(e => e.type);
+                    let dotClass = 'event';
+                    if (types.includes('birthday')) dotClass = 'birthday';
+                    else if (types.includes('holiday')) dotClass = 'holiday';
+                    else if (types.includes('practical')) dotClass = 'practical';
+                    else if (types.includes('exam')) dotClass = 'exam';
+
+                    const dot = document.createElement('div');
+                    dot.className = `event-dot ${dotClass}`;
+                    cell.appendChild(dot);
+
+                    const titles = dayEvents.map(e => e.title).join('\n');
+                    cell.title = titles;
+                }
+
+                cell.onclick = () => {
+                    document.getElementById('newEventDate').value = dateStr;
+                    document.getElementById('newEventTitle').focus();
+                };
+
+                grid.appendChild(cell);
+            }
+        }
+
+        function changeCalendarMonth(offset) {
+            currentCalMonth += offset;
+            if (currentCalMonth < 0) {
+                currentCalMonth = 11;
+                currentCalYear--;
+            } else if (currentCalMonth > 11) {
+                currentCalMonth = 0;
+                currentCalYear++;
+            }
+            renderCalendar();
+        }
+
+        function renderUpcomingEvents() {
+            const container = document.getElementById('upcomingEventsList');
+            container.innerHTML = '';
+
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+            const upcoming = calendarEvents.filter(e => e.date >= todayStr).slice(0, 10);
+            if (upcoming.length === 0) {
+                container.innerHTML = '<div style="font-size:12px; color:#64748B; font-style:italic; text-align:center;">No upcoming events</div>';
+                return;
+            }
+
+            upcoming.forEach(e => {
+                const card = document.createElement('div');
+                card.className = `event-item-card ${e.type}`;
+                
+                const dObj = new Date(e.date);
+                const formattedDate = dObj.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
+
+                card.innerHTML = `
+                    <div style="font-weight:600; color:#E2E8F0;">${e.title}</div>
+                    <div class="event-item-date">📅 ${formattedDate} (${e.type.toUpperCase()})</div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function submitManualEvent(e) {
+            e.preventDefault();
+            const date = document.getElementById('newEventDate').value;
+            const title = document.getElementById('newEventTitle').value.trim();
+            const type = document.getElementById('newEventType').value;
+
+            if (!date || !title) return;
+
+            try {
+                const res = await fetch('/api/calendar/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ date, title, type })
+                });
+
+                if (res.ok) {
+                    document.getElementById('newEventTitle').value = '';
+                    loadCalendar();
+                }
+            } catch (err) {
+                console.error("Failed to save event:", err);
+            }
+        }
+
+        window.onload = () => {
+            loadSessions();
+            loadCalendar();
+        };
     </script>
 </body>
 </html>
